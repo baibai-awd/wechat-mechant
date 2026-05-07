@@ -5,6 +5,7 @@ dist/
 project.private.config.json
 env.js
 code-review/
+uniCloud-aliyun/cloudfunctions/**/*.param.js
 *.pptx
 uniCloud-aliyun/cloudfunctions/common/uni-config-center/uni-id/config.json
 harmony-configs/config/
