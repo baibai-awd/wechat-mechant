@@ -1,0 +1,113 @@
+<template>
+  <view class="wrap">
+    <view class="side">
+      <view
+        class="side-item"
+        :class="activeIdx === i ? 'side-item-on' : ''"
+        v-for="(c, i) in level1"
+        :key="i"
+        @click="setActive(i)"
+      >
+        <text class="side-t" :class="activeIdx === i ? 'side-t-on' : ''">{{ c }}</text>
+      </view>
+    </view>
+    <scroll-view class="main">
+      <text class="main-title">{{ level1[activeIdx] }}</text>
+      <view class="brand-strip">
+        <text class="brand-t">品牌精选</text>
+        <text class="brand-s" @click="goSearch">更多 ›</text>
+      </view>
+      <scroll-view class="brand-scroll" scroll-x="true">
+        <view class="brand-row">
+          <view class="brand-pill" v-for="(b, bi) in brands" :key="bi" @click="goSearch">
+            <text class="brand-pill-t">{{ b }}</text>
+          </view>
+        </view>
+      </scroll-view>
+      <view class="sub-grid">
+        <view class="sub-chip" :class="activeSub === j ? 'sub-chip-on' : ''" v-for="(s, j) in subs[activeIdx]" :key="j" @click="pickSub(j)">
+          <text class="sub-t" :class="activeSub === j ? 'sub-t-on' : ''">{{ s }}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  const level1 = ['数码', '家居', '服饰', '食品', '更多']
+  const subs = [
+    ['手机', '耳机', '智能穿戴', '配件'],
+    ['收纳', '家纺', '灯具', '家具'],
+    ['男装', '女装', '鞋靴', '箱包'],
+    ['零食', '茶饮', '生鲜', '滋补'],
+    ['礼品', '推荐', '新品']
+  ]
+  const brands = ['自营', '旗舰店', '人气', '上新']
+  const activeIdx = ref(0)
+  const activeSub = ref(-1)
+
+  function setActive(i: number): void {
+    activeIdx.value = i
+    activeSub.value = -1
+  }
+
+  function pickSub(j: number): void {
+    activeSub.value = j
+    goSearch()
+  }
+
+  function goSearch(): void {
+    mallNavigateTo('/packages/mall/shop/search')
+  }
+</script>
+
+<style>
+.wrap { flex: 1; flex-direction: row; background-color: #f7f8fa; }
+.side {
+  width: 94px;
+  background-color: #eef1f5;
+  flex-direction: column;
+  border-right-width: 1px;
+  border-right-color: #e2e8f0;
+}
+.side-item {
+  padding: 15px 8px;
+  align-items: center;
+  border-left-width: 3px;
+  border-left-color: transparent;
+}
+.side-item-on { background-color: #ffffff; border-left-color: #0f766e; }
+.side-t { font-size: 13px; color: #4b5563; text-align: center; }
+.side-t-on { font-weight: 800; color: #0f766e; }
+.main { flex: 1; padding: 14px 16px; background-color: #f7f8fa; }
+.main-title { font-size: 18px; font-weight: 800; color: #111827; }
+.brand-strip { margin-top: 16px; flex-direction: row; align-items: center; justify-content: space-between; }
+.brand-t { font-size: 13px; font-weight: 800; color: #475569; }
+.brand-s { font-size: 13px; font-weight: 800; color: #0f766e; }
+.brand-scroll { margin-top: 10px; width: 100%; }
+.brand-row { flex-direction: row; }
+.brand-pill {
+  margin-right: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+}
+.brand-pill-t { font-size: 12px; color: #344054; font-weight: 600; }
+.sub-grid { margin-top: 16px; flex-direction: row; flex-wrap: wrap; }
+.sub-chip {
+  padding: 9px 14px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+}
+.sub-chip-on { background-color: #ecfdf5; border-color: #86efac; }
+.sub-t { font-size: 13px; color: #4b5563; }
+.sub-t-on { font-weight: 800; color: #0f766e; }
+</style>

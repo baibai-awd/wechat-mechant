@@ -1,0 +1,51 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="grid">
+      <view class="cell" v-for="(v, i) in clips" :key="'v' + i.toString()" @click="play(i)">
+        <view class="cover">
+          <text class="play">▶</text>
+        </view>
+        <text class="t">{{ v }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const clips = ['好物开箱 · 30s', '成分党测评', '穿搭速览', '厨房小电推荐']
+
+  function play(i : number) : void {
+    uni.showToast({ title: '演示：短视频播放', icon: 'none' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px;
+}
+.grid {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.cell {
+  width: 50%;
+  padding: 6px;
+  flex-direction: column;
+}
+.cover {
+  height: 200px;
+  border-radius: 16px;
+  background-color: #1f2937;
+  align-items: center;
+  justify-content: center;
+}
+.play {
+  font-size: 40px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.t {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+</style>

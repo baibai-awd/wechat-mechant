@@ -1,0 +1,65 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <view class="row" @click="toast">
+        <text class="row-t">修改登录密码</text>
+        <text class="row-a">›</text>
+      </view>
+      <view class="row" @click="toast">
+        <text class="row-t">绑定手机</text>
+        <text class="row-v">138****0000 ›</text>
+      </view>
+      <view class="row" @click="toast">
+        <text class="row-t">登录设备管理</text>
+        <text class="row-a">›</text>
+      </view>
+    </view>
+    <text class="foot">演示数据 · 接 uni-id 后同步真实安全项</text>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  function toast() : void {
+    uni.showToast({ title: '请对接账户服务', icon: 'none' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.row {
+  padding: 16px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom-width: 1px;
+  border-bottom-color: #f2f2f7;
+}
+.row-t {
+  font-size: 15px;
+  color: #1f2937;
+}
+.row-a {
+  font-size: 16px;
+  color: #9ca3af;
+}
+.row-v {
+  font-size: 14px;
+  color: #6b7280;
+}
+.foot {
+  margin-top: 24px;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 24px;
+}
+</style>

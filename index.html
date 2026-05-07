@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <!--本文件为编译到web专用文件-->
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      var coverSupport = 'CSS' in window && typeof CSS.supports === 'function' && (CSS.supports('top: env(a)') ||
+        CSS.supports('top: constant(a)'))
+      document.write(
+        '<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0' +
+        (coverSupport ? ', viewport-fit=cover' : '') + '" />')
+    </script>
+    <style id="mall-h5-tabbar-fix">
+      html body uni-app.uni-app--showtabbar uni-page uni-page-wrapper uni-page-body::after,
+      html body uni-app.uni-app--showtabbar uni-page-body::after,
+      html body uni-page-body::after {
+        content: none !important;
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      html body uni-app.uni-app--showtabbar uni-page-wrapper,
+      html body uni-app.uni-app--showtabbar uni-page-body,
+      html body uni-page-wrapper,
+      html body uni-page-body {
+        --tab-bar-height: 0px !important;
+        --uni-safe-area-inset-bottom: 0px !important;
+        padding-bottom: 0 !important;
+      }
+    </style>
+    <script>
+      ;(function () {
+        var css = [
+          'html body uni-app.uni-app--showtabbar uni-page uni-page-wrapper uni-page-body::after,',
+          'html body uni-app.uni-app--showtabbar uni-page-body::after,',
+          'html body uni-page-body::after{',
+          'content:none!important;display:none!important;width:0!important;height:0!important;',
+          'min-height:0!important;padding:0!important;margin:0!important;',
+          '}',
+          'html body uni-app.uni-app--showtabbar uni-page-wrapper,',
+          'html body uni-app.uni-app--showtabbar uni-page-body,',
+          'html body uni-page-wrapper,html body uni-page-body{',
+          '--tab-bar-height:0px!important;--uni-safe-area-inset-bottom:0px!important;padding-bottom:0!important;',
+          '}'
+        ].join('')
+
+        function injectMallTabbarFix() {
+          var old = document.getElementById('mall-h5-tabbar-fix-runtime')
+          if (old != null) old.remove()
+          var style = document.createElement('style')
+          style.id = 'mall-h5-tabbar-fix-runtime'
+          style.textContent = css
+          document.head.appendChild(style)
+        }
+
+        window.addEventListener('DOMContentLoaded', injectMallTabbarFix)
+        window.addEventListener('load', injectMallTabbarFix)
+        setTimeout(injectMallTabbarFix, 300)
+        setTimeout(injectMallTabbarFix, 1000)
+      })()
+    </script>
+    <title></title>
+    <!--preload-links-->
+    <!--app-context-->
+  </head>
+  <body>
+    <div id="app"><!--app-html--></div>
+    <script type="module" src="/main"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+node_modules/
+.hbuilderx/
+unpackage/
+dist/
+project.private.config.json
+env.js
+code-review/
+*.pptx
+uniCloud-aliyun/cloudfunctions/common/uni-config-center/uni-id/config.json
+harmony-configs/config/
+uni_modules/uni-config-center/uniCloud/cloudfunctions/common/uni-config-center/uni-pay/
+*.p12
+*.p8
+*.pem
+*.key
+.DS_Store
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# uni-app
+/dist/
+/unpackage/
+.hbuilderx/

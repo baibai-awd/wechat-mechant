@@ -1,0 +1,55 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="row" v-for="b in list" :key="b.id" @click="go(b.id)">
+      <view class="mid">
+        <text class="t">{{ b.title }}</text>
+        <text class="s">{{ b.time }} · {{ b.payMethod }}</text>
+      </view>
+      <text class="amt">¥{{ b.amount }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockBills, type MockBill } from '@/utils/mall-mock.uts'
+
+  const list = ref<MockBill[]>(mockBills())
+
+  function go(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/pay/bill-detail?id=' + id })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.row {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+  align-items: center;
+}
+.mid {
+  flex: 1;
+  flex-direction: column;
+}
+.t {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.s {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.amt {
+  font-size: 18px;
+  font-weight: 800;
+  color: #059669;
+}
+</style>

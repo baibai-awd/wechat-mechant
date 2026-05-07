@@ -1,0 +1,67 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card" v-for="(f, i) in faqs" :key="'f' + i.toString()" @click="toggle(i)">
+      <view class="row">
+        <text class="q">{{ f.q }}</text>
+        <text class="ic">{{ openIdx === i ? '−' : '+' }}</text>
+      </view>
+      <text class="a" v-if="openIdx === i">{{ f.a }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const faqs = [
+    { q: '如何修改收货地址？', a: '我的 → 收货地址 → 编辑；未发货订单可在订单详情联系客服尝试修改。' },
+    { q: '支付失败怎么办？', a: '检查网络后重试；更换支付方式；仍失败请在支付记录中查看或联系客服。' },
+    { q: '发票怎么开？', a: '订单完成后可在订单详情申请电子发票（演示文案，接 ERP 后生效）。' },
+    { q: '退货流程', a: '我的订单 → 申请售后 → 按指引寄回；保持商品完好并附赠清单。' }
+  ]
+  const openIdx = ref(0)
+
+  function toggle(i : number) : void {
+    if (openIdx.value === i) {
+      openIdx.value = -1
+    } else {
+      openIdx.value = i
+    }
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.q {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  padding-right: 12px;
+  line-height: 1.4;
+}
+.ic {
+  font-size: 18px;
+  font-weight: 700;
+  color: #059669;
+}
+.a {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+</style>

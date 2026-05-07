@@ -1,0 +1,433 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="status-card">
+      <text class="st">{{ row.statusText }}</text>
+      <text class="st-sub">订单号 {{ row.id }}</text>
+    </view>
+    <view class="card">
+      <text class="h">收货信息</text>
+      <text class="addr">{{ addrName }}</text>
+      <text class="addr2">{{ addrLine }}</text>
+    </view>
+    <view class="card">
+      <text class="h">商品</text>
+      <view class="line" @click="goPd">
+        <image v-if="row.cover != null && row.cover.length > 0" class="thumb" :src="row.cover" mode="aspectFill" />
+        <view v-else class="thumb" />
+        <view class="mid">
+          <text class="title">{{ row.goodsTitle }}</text>
+          <text class="spec">{{ row.spec }}</text>
+        </view>
+        <view class="pr">
+          <text class="price">¥{{ row.priceYuan }}</text>
+          <text class="cnt">×{{ row.count }}</text>
+        </view>
+      </view>
+      <view class="sum">
+        <text class="sum-k">运费</text>
+        <text class="sum-v">¥{{ freightStr }}</text>
+      </view>
+      <view class="sum">
+        <text class="sum-k">实付</text>
+        <text class="sum-v bold">¥{{ payTotal }}</text>
+      </view>
+    </view>
+    <view v-if="showPayEntry" class="pay-bar" @click="goPay">
+      <text class="pay-bar-t">去支付 ¥{{ payTotal }}</text>
+    </view>
+    <view v-if="showConfirmReceive" class="confirm-bar" @click="onConfirmReceive">
+      <text class="confirm-bar-t">确认收货</text>
+    </view>
+    <view class="btn-row">
+      <view v-if="showDeleteClosed || showDeleteReceived" class="btn-warn" @click="onDeleteClosed">
+        <text class="btn-warn-t">删除订单</text>
+      </view>
+      <view v-if="showCancelOrder" class="btn-warn" @click="onCancelOrder">
+        <text class="btn-warn-t">取消订单</text>
+      </view>
+      <view v-if="showAfterSales" class="btn-g" @click="goAfterSales">
+        <text class="btn-g-t">{{ afterSalesId.length > 0 ? '查看售后' : '申请售后' }}</text>
+      </view>
+      <view class="btn-g" @click="goTrack">
+        <text class="btn-g-t">查看物流</text>
+      </view>
+      <view class="btn-g" @click="goChat">
+        <text class="btn-g-t">联系客服</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { findMockOrder, type MockOrderRow } from '@/utils/mall-mock.uts'
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { getMallUniIdToken, handleMallTokenInvalid } from '@/utils/mall-auth.uts'
+
+  const row = ref<MockOrderRow>(findMockOrder(''))
+  const payTotal = ref('107.00')
+  const freightStr = ref('8.00')
+  const addrName = ref('张三 138****0000')
+  const addrLine = ref('北京市朝阳区示例街道 88 号')
+  /** 云端订单 status 原始值；仅云单有，用于是否显示「取消订单」 */
+  const orderCloudStatus = ref('')
+  /** 该订单是否有售后记录，null=未查过，''=无记录， string=有记录售后单id */
+  const afterSalesId = ref('')
+
+  const showCancelOrder = computed((): boolean => {
+    return hasUniCloudMall() && getMallUniIdToken().length > 0 && orderCloudStatus.value === 'pending_pay'
+  })
+
+  const showPayEntry = computed((): boolean => {
+    return showCancelOrder.value
+  })
+
+  const showDeleteClosed = computed((): boolean => {
+    return hasUniCloudMall() && getMallUniIdToken().length > 0 && orderCloudStatus.value === 'closed'
+  })
+
+  const showDeleteReceived = computed((): boolean => {
+    if (hasUniCloudMall() && getMallUniIdToken().length > 0) {
+      return orderCloudStatus.value === 'received'
+    }
+    return row.value.statusText === '已完成'
+  })
+
+  const showConfirmReceive = computed((): boolean => {
+    if (hasUniCloudMall() && getMallUniIdToken().length > 0) {
+      return orderCloudStatus.value === 'shipped'
+    }
+    return row.value.statusText === '待收货'
+  })
+
+  const showAfterSales = computed((): boolean => {
+    if (hasUniCloudMall() && getMallUniIdToken().length > 0) {
+      const s = orderCloudStatus.value
+      return s === 'shipped' || s === 'received' || s === 'closed'
+    }
+    const st = row.value.statusText
+    return st === '待收货' || st === '已完成'
+  })
+
+  function applyMock(id: string): void {
+    orderCloudStatus.value = ''
+    row.value = findMockOrder(id)
+    payTotal.value = row.value.payTotalYuan
+    freightStr.value = '8.00'
+    addrName.value = '张三 138****0000'
+    addrLine.value = '北京市朝阳区示例街道 88 号'
+  }
+
+  async function loadCloud(orderNo: string): Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getMyOrder({ token: token, order_no: orderNo }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        const r = res['row'] as UTSJSONObject
+        const pt = res['payTotal'] as string
+        if (r != null) {
+          const st = r['status'] as string
+          orderCloudStatus.value = st != null ? st : ''
+          const cv = r['cover'] as string
+          row.value = {
+            id: r['id'] as string,
+            statusText: r['statusText'] as string,
+            goodsTitle: r['goodsTitle'] as string,
+            spec: r['spec'] as string,
+            priceYuan: r['priceYuan'] as string,
+            count: r['count'] as number,
+            time: r['time'] as string,
+            productId: r['productId'] as string,
+            cover: cv != null ? cv : '',
+            payTotalYuan: pt != null && pt.length > 0 ? pt : '0.00'
+          }
+        }
+        if (pt != null && pt.length > 0) {
+          payTotal.value = pt
+        }
+        const fy = res['freightYuan'] as string
+        if (fy != null && fy.length > 0) {
+          freightStr.value = fy
+        }
+        const an = res['addrName'] as string
+        const al = res['addrLine'] as string
+        if (an != null) {
+          addrName.value = an
+        }
+        if (al != null) {
+          addrLine.value = al
+        }
+        loadAfterSalesStatus(orderNo)
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+    } catch (e) {
+      handleMallTokenInvalid()
+      return
+    }
+    if (hasUniCloudMall()) {
+      uni.showToast({ title: '订单不存在或加载失败', icon: 'none' })
+      setTimeout(() => {
+        uni.navigateBack({})
+      }, 400)
+      return
+    }
+    applyMock(orderNo)
+  }
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['id'] as string
+    const oid = id != null && id.length > 0 ? id : ''
+    if (hasUniCloudMall() && oid.length > 0) {
+      if (getMallUniIdToken().length === 0) {
+        uni.showToast({ title: '请先登录', icon: 'none' })
+        setTimeout(() => {
+          uni.navigateBack({})
+        }, 400)
+        return
+      }
+      loadCloud(oid)
+    } else {
+      applyMock(oid)
+    }
+  })
+
+  function goPay() : void {
+    if (!showPayEntry.value) {
+      return
+    }
+    const oid = row.value.id
+    if (oid.length === 0) {
+      return
+    }
+    uni.navigateTo({
+      url: '/packages/mall/pay/checkout?amount=' + encodeURIComponent(payTotal.value) + '&orderNo=' + encodeURIComponent(oid) + '&src=buy'
+    })
+  }
+
+  function goPd() : void {
+    uni.navigateTo({ url: '/packages/mall/shop/product-detail?id=' + row.value.productId })
+  }
+  function goTrack() : void {
+    uni.navigateTo({ url: '/packages/mall/logistics/track?orderId=' + row.value.id })
+  }
+  function goChat() : void {
+    uni.navigateTo({ url: '/packages/mall/svc/chat' })
+  }
+
+  function goAfterSales() : void {
+    const oid = row.value.id
+    if (afterSalesId.value.length > 0) {
+      uni.navigateTo({ url: '/packages/mall/pay/after-sales-detail?orderId=' + encodeURIComponent(oid) + '&id=' + encodeURIComponent(afterSalesId.value) })
+      return
+    }
+    const params = [
+      'orderId=' + encodeURIComponent(oid),
+      'title=' + encodeURIComponent(row.value.goodsTitle),
+      'spec=' + encodeURIComponent(row.value.spec),
+      'amount=' + encodeURIComponent(row.value.priceYuan),
+      'cover=' + encodeURIComponent(row.value.cover)
+    ]
+    uni.navigateTo({ url: '/packages/mall/pay/after-sales?' + params.join('&') })
+  }
+
+  async function loadAfterSalesStatus(orderNo: string): Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) return
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getMyAfterSalesList({ token, limit: 50 }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        for (let i = 0; i < arr.length; i++) {
+          if ((arr[i]['id'] as string) === orderNo) {
+            afterSalesId.value = orderNo
+            return
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  function onConfirmReceive() : void {
+    uni.showModal({
+      title: '确认收货',
+      content: '请确认您已收到商品且商品完好无损，确定要确认收货吗？',
+      showCancel: true,
+      success: (res : any) => {
+        if (res != null && res['confirm'] === true) {
+          runConfirmReceive()
+        }
+      }
+    })
+  }
+
+  async function runConfirmReceive() : Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      return
+    }
+    const orderNo = row.value.id
+    if (orderNo.length === 0) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.confirmReceive({ token: token, order_no: orderNo }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        uni.showToast({ title: '已确认收货', icon: 'success' })
+        loadCloud(orderNo)
+        return
+      }
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '操作失败', icon: 'none' })
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+
+  function onCancelOrder() : void {
+    if (!showCancelOrder.value) {
+      return
+    }
+    uni.showModal({
+      title: '取消订单',
+      content: '确定取消该订单？取消后可在「全部」中查看已关闭订单',
+      showCancel: true,
+      success: (res : any) => {
+        if (res != null && res['confirm'] === true) {
+          runCancelOrder()
+        }
+      }
+    })
+  }
+
+  async function runCancelOrder() : Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      return
+    }
+    const orderNo = row.value.id
+    if (orderNo.length === 0) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.cancelMyOrder({ token: token, order_no: orderNo }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        uni.showToast({ title: '已取消', icon: 'success' })
+        loadCloud(orderNo)
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '取消失败', icon: 'none' })
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+
+  function onDeleteClosed() : void {
+    if (!showDeleteClosed.value && !showDeleteReceived.value) {
+      return
+    }
+    uni.showModal({
+      title: '删除订单',
+      content: '确定删除该订单？删除后不可恢复，列表中将不再显示',
+      showCancel: true,
+      success: (res : any) => {
+        if (res != null && res['confirm'] === true) {
+          runDeleteClosed()
+        }
+      }
+    })
+  }
+
+  async function runDeleteClosed() : Promise<void> {
+    const token = getMallUniIdToken()
+    const orderNo = row.value.id
+    if (orderNo.length === 0) {
+      return
+    }
+    // mock 订单无 token，直接本地模拟删除
+    if (token.length === 0 || !hasUniCloudMall()) {
+      uni.showToast({ title: '已删除（演示）', icon: 'success' })
+      setTimeout(() => { uni.navigateBack({}) }, 400)
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.deleteClosedMyOrder({ token: token, order_no: orderNo }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        uni.showToast({ title: '已删除', icon: 'success' })
+        setTimeout(() => {
+          uni.navigateBack({})
+        }, 400)
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '删除失败', icon: 'none' })
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+</script>
+<style>
+.sc { background-color: #f7f8fa; padding: 12px 16px 24px; }
+.status-card { padding: 20px 16px; border-radius: 8px; background: linear-gradient(135deg, #0f766e 0%, #14b8a6 80%); flex-direction: column; margin-bottom: 12px; }
+.st { font-size: 21px; font-weight: 800; color: #ffffff; }
+.st-sub { margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.9); }
+.card { margin-bottom: 12px; padding: 16px; border-radius: 8px; background-color: #ffffff; border-width: 1px; border-color: #e6e8ec; flex-direction: column; }
+.h { font-size: 15px; font-weight: 800; color: #111827; margin-bottom: 12px; }
+.addr { font-size: 14px; color: #344054; font-weight: 700; }
+.addr2 { margin-top: 6px; font-size: 13px; color: #667085; line-height: 1.45; }
+.line { flex-direction: row; align-items: flex-start; margin-bottom: 12px; }
+.thumb { width: 64px; height: 64px; border-radius: 8px; background-color: #e9edf2; }
+.mid { flex: 1; margin-left: 12px; flex-direction: column; }
+.title { font-size: 14px; font-weight: 700; color: #111827; line-height: 1.35; }
+.spec { margin-top: 6px; font-size: 12px; color: #8a94a6; }
+.pr { align-items: flex-end; flex-direction: column; }
+.price { font-size: 15px; font-weight: 800; color: #0f766e; }
+.cnt { margin-top: 4px; font-size: 12px; color: #8a94a6; }
+.sum { flex-direction: row; justify-content: space-between; margin-top: 8px; }
+.sum-k { font-size: 14px; color: #667085; }
+.sum-v { font-size: 14px; color: #344054; font-weight: 600; }
+.sum-v.bold { font-size: 18px; font-weight: 800; color: #0f766e; }
+.pay-bar, .confirm-bar { margin: 0 16px 12px; padding: 14px; border-radius: 8px; background-color: #0f766e; align-items: center; justify-content: center; }
+.pay-bar-t, .confirm-bar-t { font-size: 16px; font-weight: 800; color: #ffffff; }
+.btn-row { flex-direction: row; justify-content: flex-end; flex-wrap: wrap; }
+.btn-warn { margin-right: auto; padding: 10px 14px; border-radius: 8px; border-width: 1px; border-color: #dc2626; background-color: #ffffff; }
+.btn-warn-t { font-size: 14px; font-weight: 800; color: #dc2626; }
+.btn-g { margin-left: 8px; padding: 10px 14px; border-radius: 8px; border-width: 1px; border-color: #0f766e; background-color: #ffffff; }
+.btn-g-t { font-size: 14px; font-weight: 800; color: #0f766e; }
+</style>

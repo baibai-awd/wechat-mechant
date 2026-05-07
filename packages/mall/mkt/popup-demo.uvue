@@ -1,0 +1,65 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="tip">以下为 uni 原生弹窗能力演示，用于运营位 AB（与商城业务无关时可忽略）。</text>
+    <view class="btn" @click="d1">
+      <text class="btn-t">showModal 确认</text>
+    </view>
+    <view class="btn" @click="d2">
+      <text class="btn-t">showActionSheet</text>
+    </view>
+    <view class="btn ghost" @click="d3">
+      <text class="btn-g">showToast</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  function d1() : void {
+    uni.showModal({
+      title: '提示',
+      content: '这是一个演示对话框',
+      showCancel: true
+    })
+  }
+  function d2() : void {
+    uni.showActionSheet({
+      itemList: ['选项 A', '选项 B', '选项 C']
+    })
+  }
+  function d3() : void {
+    uni.showToast({ title: '操作成功', icon: 'success' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.tip {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+.btn {
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn.ghost {
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #059669;
+}
+.btn-t {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.btn-g {
+  font-size: 15px;
+  font-weight: 700;
+  color: #059669;
+}
+</style>

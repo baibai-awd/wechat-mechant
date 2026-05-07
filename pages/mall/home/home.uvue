@@ -1,0 +1,302 @@
+<template>
+  <scroll-view class="scroll" enable-back-to-top="true">
+    <view class="search-row" @click="goSearch">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索商品 / 品牌 / 店铺</text>
+    </view>
+
+    <swiper class="banner-swiper" indicator-dots="true" autoplay="true" interval="4000" circular="true">
+      <swiper-item v-for="(b, bi) in banners" :key="bi">
+        <view class="banner-slide">
+          <text class="banner-title">{{ b.title }}</text>
+          <text class="banner-sub">{{ b.subtitle }}</text>
+        </view>
+      </swiper-item>
+    </swiper>
+
+    <view class="cat-row">
+      <view class="cat-item" v-for="(c, ci) in categories" :key="ci" @click="goCategory">
+        <view class="cat-icon">
+          <text class="cat-icon-txt">{{ c.name.substring(0, 1) }}</text>
+        </view>
+        <text class="cat-name">{{ c.name }}</text>
+      </view>
+    </view>
+
+    <view class="section-head">
+      <text class="section-title">活动专场</text>
+      <text class="section-more" @click="goMkt('/packages/mall/mkt/coupon-center')">更多 ›</text>
+    </view>
+    <view class="activity-card" @click="goMkt('/packages/mall/mkt/flash')">
+      <text class="activity-t1">满 299 减 40 · 春季焕新</text>
+      <text class="activity-t2">03.20 - 03.31 · 个护家电</text>
+    </view>
+
+    <view class="section-head section-head2">
+      <text class="section-title">为你推荐</text>
+      <text class="cloud-tip">{{ cloudHint }}</text>
+    </view>
+
+    <!-- 仅表示「模拟器预览」，不是微信里的「游客登录」 -->
+    <view v-if="showDevToolsPreview" class="tourist-tip">
+      <text class="tip-text">开发者工具模拟器预览</text>
+      <text class="tip-sub">运行环境为 devtools，与真机微信不同；支付、部分登录能力请用真机扫码预览。这与右上角「登录开发者工具账号」无关。</text>
+    </view>
+
+    <view class="goods-grid">
+      <view class="goods-card" v-for="(p, pi) in products" :key="pi" @click="goProduct(p.id)">
+        <image v-if="p.cover != null && p.cover.length > 0" class="goods-cover-img" :src="p.cover" mode="aspectFill" />
+        <view v-else class="goods-cover" />
+        <text class="goods-title">{{ p.title }}</text>
+        <view class="goods-foot">
+          <text class="goods-price">¥{{ p.priceYuan }}</text>
+          <text class="goods-tag" v-if="p.tag !== ''">{{ p.tag }}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="mkt-card">
+      <text class="mkt-link" @click="goMkt('/packages/mall/mkt/flash')">秒杀</text>
+      <text class="mkt-link" @click="goMkt('/packages/mall/mkt/group-list')">拼团</text>
+      <text class="mkt-link" @click="goMkt('/packages/mall/mkt/coupon-center')">领券</text>
+    </view>
+  </scroll-view>
+</template>
+
+<script setup lang="uts">
+  import { getSampleProductCover } from '@/utils/mall-catalog.uts'
+  import { mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  type HomeBanner = { title: string; subtitle: string }
+  type HomeCat = { id: string; name: string; icon: string }
+  type HomeProduct = { id: string; title: string; priceYuan: string; tag: string; cover: string }
+
+  const banners = ref<HomeBanner[]>([
+    { title: 'Spring Sale', subtitle: '满减 · 包邮 · 好礼加赠' },
+    { title: '会员日', subtitle: '积分翻倍 · 专属券包' }
+  ])
+  const categories = ref<HomeCat[]>([
+    { id: '1', name: '秒杀', icon: '' },
+    { id: '2', name: '拼团', icon: '' },
+    { id: '3', name: '领券', icon: '' },
+    { id: '4', name: '品牌', icon: '' }
+  ])
+  const products = ref<HomeProduct[]>([
+    { id: 'p1', title: '示例商品 A', priceYuan: '99.00', tag: '热卖', cover: '/static/mall/products/product-a.png' },
+    { id: 'p2', title: '示例商品 B', priceYuan: '128.00', tag: '', cover: '/static/mall/products/product-b.png' },
+    { id: 'p3', title: '示例商品 C', priceYuan: '59.00', tag: '新品', cover: '/static/mall/products/product-c.png' },
+    { id: 'p4', title: '示例商品 D', priceYuan: '199.00', tag: '', cover: '/static/mall/products/product-d.png' }
+  ])
+  const cloudHint = ref('本地演示数据')
+  /** 仅当 platform===devtools，表示模拟器预览，勿与「微信游客」混淆 */
+  const showDevToolsPreview = ref(false)
+
+  function hasUniCloud(): boolean {
+    // @ts-ignore
+    return typeof uniCloud != 'undefined' && uniCloud.config != null && uniCloud.config.spaceId != null && uniCloud.config.spaceId != ''
+  }
+
+  async function loadFromCloud(): Promise<void> {
+    if (!hasUniCloud()) {
+      cloudHint.value = '未关联 uniCloud，使用本地数据'
+      return
+    }
+
+    updateDevToolsPreviewFlag()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getHomeBlocks() as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const bl = res['banners'] as HomeBanner[]
+        const cl = res['categories'] as HomeCat[]
+        const plRaw = res['products'] as UTSJSONObject[]
+        if (bl != null && bl.length > 0) {
+          banners.value = bl
+        }
+        if (cl != null && cl.length > 0) {
+          categories.value = cl
+        }
+        if (plRaw != null && plRaw.length > 0) {
+          const norm: HomeProduct[] = []
+          for (let i = 0; i < plRaw.length; i++) {
+            const o = plRaw[i]
+            const cv = o['cover'] as string
+            const id = o['id'] as string
+            norm.push({
+              id: id,
+              title: o['title'] as string,
+              priceYuan: o['priceYuan'] as string,
+              tag: o['tag'] != null ? (o['tag'] as string) : '',
+              cover: cv != null && cv.length > 0 ? cv : getSampleProductCover(i)
+            })
+          }
+          products.value = norm
+        }
+        const src = res['source'] as string
+        if (src === 'db') {
+          cloudHint.value = '商品来自云端 mall-product'
+        } else if (src != null && src.length > 0) {
+          cloudHint.value = '云端回退：' + src + '（演示数据）'
+        } else {
+          cloudHint.value = '已通过 mall-co 拉取首页块'
+        }
+      }
+    } catch (e) {
+      cloudHint.value = 'mall-co 调用失败，使用本地数据'
+    }
+  }
+
+  onLoad(() => {
+    loadFromCloud()
+  })
+
+  function goSearch(): void {
+    mallNavigateTo('/packages/mall/shop/search')
+  }
+
+  function goCategory(): void {
+    uni.switchTab({ url: '/pages/mall/category/category' })
+  }
+
+  function goProduct(id: string): void {
+    mallNavigateTo('/packages/mall/shop/product-detail?id=' + id)
+  }
+
+  function goMkt(url: string): void {
+    mallNavigateTo(url)
+  }
+
+  function updateDevToolsPreviewFlag() : void {
+    // #ifdef MP-WEIXIN
+    try {
+      const systemInfo = uni.getSystemInfoSync()
+      // 模拟器里 platform 固定为 devtools，不代表「未登录开发者工具」
+      showDevToolsPreview.value = systemInfo.platform === 'devtools'
+    } catch (e) {
+      showDevToolsPreview.value = false
+    }
+    // #endif
+  }
+</script>
+
+<style>
+.scroll {
+  flex: 1;
+  background-color: #f7f8fa;
+}
+.search-row {
+  margin: 12px 16px 10px 16px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: row;
+  align-items: center;
+}
+.search-icon { font-size: 14px; margin-right: 8px; color: #0f766e; }
+.search-placeholder { flex: 1; font-size: 14px; color: #737b89; }
+.banner-swiper { height: 132px; margin: 0 16px; }
+.banner-slide {
+  flex: 1;
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 55%, #f59e0b 130%);
+  padding: 18px;
+  flex-direction: column;
+  justify-content: center;
+}
+.banner-title { font-size: 20px; font-weight: 800; color: #ffffff; }
+.banner-sub { margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.9); }
+.cat-row {
+  margin: 14px 16px 0 16px;
+  padding: 14px 8px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: row;
+  justify-content: space-around;
+}
+.cat-item { flex-direction: column; align-items: center; width: 64px; }
+.cat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background-color: #ecfdf5;
+  border-width: 1px;
+  border-color: #bbf7d0;
+  align-items: center;
+  justify-content: center;
+}
+.cat-icon-txt { font-size: 16px; font-weight: 800; color: #0f766e; }
+.cat-name { margin-top: 7px; font-size: 12px; color: #344054; }
+.section-head {
+  margin: 20px 16px 10px 16px;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.section-head2 { margin-top: 12px; }
+.section-title { font-size: 17px; font-weight: 800; color: #111827; }
+.section-more { font-size: 13px; font-weight: 700; color: #0f766e; }
+.activity-card {
+  margin: 0 16px;
+  padding: 15px 16px;
+  border-radius: 8px;
+  background-color: #fff7ed;
+  border-width: 1px;
+  border-color: #fed7aa;
+  flex-direction: column;
+}
+.activity-t1 { font-size: 15px; font-weight: 800; color: #9a3412; }
+.activity-t2 { margin-top: 6px; font-size: 12px; color: #b45309; }
+.cloud-tip { font-size: 11px; color: #8a94a6; }
+.goods-grid { padding: 0 10px 8px 10px; flex-direction: row; flex-wrap: wrap; }
+.goods-card {
+  width: 50%;
+  padding: 6px;
+  flex-direction: column;
+}
+.goods-cover, .goods-cover-img {
+  width: 100%;
+  height: 142px;
+  border-radius: 8px;
+  background-color: #e9edf2;
+}
+.goods-title { margin-top: 9px; font-size: 14px; font-weight: 600; color: #1f2937; line-height: 1.35; }
+.goods-foot { margin-top: 7px; flex-direction: row; align-items: center; justify-content: space-between; }
+.goods-price { font-size: 17px; font-weight: 800; color: #0f766e; }
+.goods-tag {
+  font-size: 11px;
+  color: #b45309;
+  background-color: #fffbeb;
+  border-width: 1px;
+  border-color: #fde68a;
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.mkt-card {
+  margin: 8px 16px 0 16px;
+  padding: 14px 12px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: row;
+  justify-content: space-around;
+}
+.mkt-link { font-size: 14px; color: #0f766e; font-weight: 800; }
+.tourist-tip {
+  margin: 12px 16px;
+  padding: 12px 14px;
+  background-color: #fffbeb;
+  border-radius: 8px;
+  border-width: 1px;
+  border-color: #fde68a;
+  flex-direction: column;
+}
+.tip-text { font-size: 13px; color: #92400e; font-weight: 800; margin-bottom: 4px; }
+.tip-sub { font-size: 12px; color: #a16207; line-height: 1.4; }
+</style>

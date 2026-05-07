@@ -1,0 +1,100 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="hero">
+      <text class="h">领券中心</text>
+      <text class="s">每日 10:00 上新 · 先到先得（演示）</text>
+    </view>
+    <view class="c" v-for="x in items" :key="x.id">
+      <view class="l">
+        <text class="amt">{{ x.amountText }}</text>
+        <view class="m">
+          <text class="t">{{ x.title }}</text>
+          <text class="sub">{{ x.sub }}</text>
+        </view>
+      </view>
+      <view class="get" @click="claim(x.id)">
+        <text class="get-t">领取</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const items = [
+    { id: 'nc1', amountText: '¥15', title: '新人专享', sub: '满 99 可用' },
+    { id: 'nc2', amountText: '¥30', title: '品类券', sub: '数码家电部分可用' },
+    { id: 'nc3', amountText: '免邮', title: '运费券', sub: '限本店自营订单' }
+  ]
+
+  function claim(id : string) : void {
+    uni.showToast({ title: '领取成功', icon: 'success' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px;
+}
+.hero {
+  margin-bottom: 12px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  flex-direction: column;
+}
+.h {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.s {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+}
+.c {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #fcd34d;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.l {
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+.amt {
+  font-size: 22px;
+  font-weight: 800;
+  color: #b45309;
+  width: 64px;
+}
+.m {
+  flex-direction: column;
+  margin-left: 8px;
+}
+.t {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.get {
+  padding: 8px 16px;
+  border-radius: 20px;
+  background-color: #059669;
+}
+.get-t {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

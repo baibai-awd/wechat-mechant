@@ -1,0 +1,61 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="q">{{ item.q }}</text>
+      <view class="ans">
+        <text class="lab">官方回复</text>
+        <text class="a">{{ item.a }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { findMockQa, type MockQa } from '@/utils/mall-mock.uts'
+
+  const item = ref<MockQa>(findMockQa(''))
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['id'] as string
+    if (id != null && id.length > 0) {
+      item.value = findMockQa(id)
+    }
+  })
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  padding: 20px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.q {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.45;
+}
+.ans {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: #ecfdf5;
+  flex-direction: column;
+}
+.lab {
+  font-size: 12px;
+  font-weight: 700;
+  color: #047857;
+  margin-bottom: 8px;
+}
+.a {
+  font-size: 14px;
+  color: #065f46;
+  line-height: 1.65;
+}
+</style>

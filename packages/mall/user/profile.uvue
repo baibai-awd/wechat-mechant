@@ -1,0 +1,167 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="sec-t">头像</text>
+      <view class="ava-row">
+        <view class="avatar-lg">
+          <text class="avatar-lg-t">用</text>
+        </view>
+        <text class="hint">演示环境不上传图片</text>
+      </view>
+    </view>
+    <view class="card">
+      <view class="field">
+        <text class="k">昵称</text>
+        <view class="v-wrap">
+          <text v-if="nick.length === 0" class="v-ph">请输入昵称</text>
+          <input class="v" :value="nick" @input="onNick" />
+        </view>
+      </view>
+      <view class="field">
+        <text class="k">性别</text>
+        <text class="v2">保密</text>
+      </view>
+    </view>
+    <view class="btn-main" @click="save">
+      <text class="btn-main-t">保存</text>
+    </view>
+    <view class="btn-out" @click="logout">
+      <text class="btn-out-t">退出登录</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { clearMallAuth, getMallUserLabel, handleMallTokenInvalid } from '@/utils/mall-auth.uts'
+
+  const nick = ref('商城用户')
+
+  onShow(() => {
+    const lab = getMallUserLabel()
+    if (lab.length > 0) {
+      nick.value = lab
+    }
+  })
+
+  function onNick(e : UniInputEvent) {
+    nick.value = e.detail.value
+  }
+  function save() : void {
+    uni.showToast({ title: '已保存', icon: 'success' })
+  }
+  function logout() : void {
+    clearMallAuth()
+    uni.showToast({ title: '已退出', icon: 'none' })
+    setTimeout(() => {
+      uni.navigateBack({})
+    }, 300)
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.sec-t {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+.ava-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.avatar-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background-color: #d1fae5;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-lg-t {
+  font-size: 24px;
+  font-weight: 700;
+  color: #059669;
+}
+.hint {
+  font-size: 13px;
+  color: #9ca3af;
+}
+.field {
+  flex-direction: row;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f2f2f7;
+}
+.k {
+  width: 72px;
+  font-size: 15px;
+  color: #6b7280;
+}
+.v-wrap {
+  flex: 1;
+  position: relative;
+  flex-direction: column;
+  align-items: flex-end;
+}
+.v-ph {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-size: 15px;
+  color: #9ca3af;
+  z-index: 0;
+  pointer-events: none;
+}
+.v {
+  flex: 1;
+  font-size: 15px;
+  color: #111827;
+  z-index: 1;
+  background-color: transparent;
+}
+.v2 {
+  flex: 1;
+  font-size: 15px;
+  color: #111827;
+  text-align: right;
+}
+.btn-main {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn-main-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.btn-out {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 24px;
+  border-width: 1px;
+  border-color: #fecaca;
+  background-color: #ffffff;
+  align-items: center;
+}
+.btn-out-t {
+  font-size: 16px;
+  font-weight: 600;
+  color: #dc2626;
+}
+</style>

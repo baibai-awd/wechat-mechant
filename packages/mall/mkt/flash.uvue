@@ -1,0 +1,119 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;" scroll-y="true">
+    <view class="banner">
+      <text class="b1">限时秒杀</text>
+      <text class="b2">本场结束倒计时 {{ countdown }}</text>
+      <view class="time-row">
+        <text class="time-pill">10:00 场</text>
+        <text class="time-pill muted">14:00 场</text>
+        <text class="time-pill muted">20:00 场</text>
+      </view>
+    </view>
+
+    <view class="row" v-for="r in rows" :key="r.productId" @click="goDetail(r.productId)">
+      <image v-if="r.cover.length > 0" class="thumb" :src="r.cover" mode="aspectFill" />
+      <view v-else class="thumb" />
+      <view class="mid">
+        <view class="title-row">
+          <text class="t">{{ r.title }}</text>
+          <text class="status">{{ r.statusText }}</text>
+        </view>
+        <text class="tag">{{ r.tag }} · {{ r.limitText }}</text>
+        <view class="progress">
+          <view class="progress-fill" :style="{ width: progressWidth(r) }" />
+        </view>
+        <view class="pr">
+          <text class="now">¥{{ r.priceYuan }}</text>
+          <text class="line">¥{{ r.lineYuan }}</text>
+          <text class="sold">已抢 {{ r.sold }}/{{ r.stock }}</text>
+        </view>
+      </view>
+      <view class="btn">
+        <text class="btn-t">马上抢</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script setup lang="uts">
+  import { mockFlashRows, type MockMktRow } from '@/utils/mall-mock.uts'
+
+  const rows = ref<MockMktRow[]>(mockFlashRows())
+  const countdown = ref('02:15:33')
+
+  function progressWidth(r : MockMktRow) : string {
+    if (r.stock <= 0) {
+      return '0%'
+    }
+    const pct = Math.min(100, Math.round(r.sold * 100 / r.stock))
+    return pct.toString() + '%'
+  }
+
+  function goDetail(pid : string) : void {
+    uni.navigateTo({ url: '/packages/mall/mkt/flash-detail?productId=' + pid })
+  }
+</script>
+
+<style>
+.sc { background-color: #f7f8fa; padding: 12px 14px 28px; box-sizing: border-box; }
+.banner {
+  margin-bottom: 12px;
+  padding: 18px 16px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #991b1b 0%, #dc2626 58%, #f59e0b 120%);
+  flex-direction: column;
+}
+.b1 { font-size: 22px; font-weight: 800; color: #ffffff; }
+.b2 { margin-top: 8px; font-size: 13px; color: rgba(255, 255, 255, 0.95); }
+.time-row { margin-top: 14px; flex-direction: row; align-items: center; }
+.time-pill {
+  margin-right: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.time-pill.muted { background-color: rgba(255, 255, 255, 0.12); color: rgba(255, 255, 255, 0.78); }
+.row {
+  margin-bottom: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: row;
+  align-items: center;
+}
+.thumb { width: 88px; height: 88px; border-radius: 8px; background-color: #fee2e2; flex-shrink: 0; }
+.mid { flex: 1; min-width: 0; margin-left: 12px; flex-direction: column; }
+.title-row { flex-direction: row; align-items: center; justify-content: space-between; }
+.t { flex: 1; font-size: 15px; font-weight: 800; color: #111827; line-height: 1.35; }
+.status {
+  margin-left: 8px;
+  padding: 3px 7px;
+  border-radius: 8px;
+  background-color: #fff1f2;
+  color: #be123c;
+  font-size: 11px;
+  font-weight: 800;
+}
+.tag { margin-top: 6px; font-size: 12px; color: #dc2626; font-weight: 700; }
+.progress { margin-top: 9px; height: 7px; border-radius: 8px; background-color: #fee2e2; overflow: hidden; }
+.progress-fill { height: 7px; border-radius: 8px; background-color: #dc2626; }
+.pr { margin-top: 8px; flex-direction: row; align-items: baseline; flex-wrap: wrap; }
+.now { font-size: 19px; font-weight: 900; color: #dc2626; }
+.line { margin-left: 8px; font-size: 12px; color: #9ca3af; text-decoration: line-through; }
+.sold { margin-left: 8px; font-size: 11px; color: #8a94a6; }
+.btn {
+  width: 72px;
+  height: 36px;
+  margin-left: 8px;
+  border-radius: 8px;
+  background-color: #dc2626;
+  align-items: center;
+  justify-content: center;
+}
+.btn-t { font-size: 13px; font-weight: 800; color: #ffffff; }
+</style>

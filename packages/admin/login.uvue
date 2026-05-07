@@ -1,0 +1,144 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="h">{{ isReg ? '商家注册' : '商家登录' }}</text>
+
+    <view class="card">
+      <text class="lab">账号</text>
+      <input class="inp" placeholder="输入账号" :value="acc" @input="onA" />
+    </view>
+
+    <view class="card">
+      <text class="lab">密码</text>
+      <input class="inp" password="true" placeholder="输入密码" :value="pwd" @input="onP" />
+    </view>
+
+    <view v-if="isReg" class="card">
+      <text class="lab">确认密码</text>
+      <input class="inp" password="true" placeholder="再输入一次密码" :value="pwd2" @input="onP2" />
+    </view>
+
+    <view class="btn" @click="isReg ? doRegister() : doLogin()">
+      <text class="btn-t">{{ loading ? (isReg ? '注册中...' : '登录中...') : (isReg ? '注册' : '登录工作台') }}</text>
+    </view>
+
+    <view class="link-row">
+      <text class="link" @click="isReg = !isReg">
+        {{ isReg ? '已有账号？去登录' : '没有账号？立即注册' }}
+      </text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { setAdminAuth } from '@/utils/admin-auth.uts'
+
+  const isReg = ref(false)
+  const acc = ref('')
+  const pwd = ref('')
+  const pwd2 = ref('')
+  const loading = ref(false)
+
+  function onA(e: UniInputEvent) { acc.value = e.detail.value }
+  function onP(e: UniInputEvent) { pwd.value = e.detail.value }
+  function onP2(e: UniInputEvent) { pwd2.value = e.detail.value }
+
+  async function doLogin(): Promise<void> {
+    if (loading.value) return
+    const username = acc.value.trim()
+    const password = pwd.value
+    if (!username || !password) {
+      uni.showToast({ title: '请输入账号和密码', icon: 'none' })
+      return
+    }
+    loading.value = true
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.login({ username, password }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const token = res['token'] as string
+        const role = res['role'] as string
+        const nickname = res['nickname'] as string
+        setAdminAuth(token, role, nickname)
+        uni.redirectTo({ url: '/packages/admin/dashboard' })
+      } else {
+        uni.showToast({ title: (res['errMsg'] as string) || '登录失败', icon: 'none' })
+      }
+    } catch (e: any) {
+      let msg = '网络错误，请稍后重试'
+      if (e) {
+        if (typeof e === 'string') {
+          msg = e
+        } else if (e.errMsg) {
+          msg = e.errMsg
+        } else if (e.message) {
+          msg = e.message
+        } else if (e.errorMessage) {
+          msg = e.errorMessage
+        }
+      }
+      uni.showToast({ title: msg, icon: 'none', duration: 3000 })
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function doRegister(): Promise<void> {
+    if (loading.value) return
+    const username = acc.value.trim()
+    const password = pwd.value
+    const password2 = pwd2.value
+    if (!username || !password) {
+      uni.showToast({ title: '请输入账号和密码', icon: 'none' })
+      return
+    }
+    if (password.length < 6) {
+      uni.showToast({ title: '密码至少6位', icon: 'none' })
+      return
+    }
+    if (password !== password2) {
+      uni.showToast({ title: '两次密码输入不一致', icon: 'none' })
+      return
+    }
+    loading.value = true
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.register({ username, password, role: 'owner' }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        uni.showToast({ title: '注册成功', icon: 'success' })
+        pwd.value = ''
+        pwd2.value = ''
+        isReg.value = false
+      } else {
+        uni.showToast({ title: (res['errMsg'] as string) || '注册失败', icon: 'none' })
+      }
+    } catch (e: any) {
+      let msg = '网络错误，请稍后重试'
+      if (e) {
+        if (typeof e === 'string') {
+          msg = e
+        } else if (e.errMsg) {
+          msg = e.errMsg
+        } else if (e.message) {
+          msg = e.message
+        } else if (e.errorMessage) {
+          msg = e.errorMessage
+        }
+      }
+      uni.showToast({ title: msg, icon: 'none', duration: 3000 })
+    } finally {
+      loading.value = false
+    }
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 28px 16px 40px; box-sizing: border-box; }
+.h { display: block; margin: 18px 0 22px; font-size: 26px; line-height: 34px; font-weight: 700; color: #111827; }
+.card { margin-bottom: 12px; padding: 14px 14px 12px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.lab { display: block; margin-bottom: 9px; font-size: 13px; line-height: 18px; font-weight: 600; color: #475569; }
+.inp { height: 40px; font-size: 16px; line-height: 40px; color: #111827; }
+.btn { height: 48px; margin-top: 18px; border-radius: 8px; background-color: #0f766e; display: flex; align-items: center; justify-content: center; }
+.btn-t { font-size: 16px; line-height: 22px; font-weight: 700; color: #ffffff; }
+.link-row { padding: 18px 0; display: flex; align-items: center; justify-content: center; }
+.link { font-size: 14px; line-height: 20px; color: #0f766e; font-weight: 600; }
+</style>

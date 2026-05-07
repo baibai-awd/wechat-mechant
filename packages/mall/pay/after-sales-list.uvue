@@ -1,0 +1,225 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view v-if="loading" class="loading">
+      <text class="loading-t">加载中...</text>
+    </view>
+    <view v-else-if="list.length === 0 && !loading" class="empty">
+      <text class="empty-t">暂无售后记录</text>
+      <text class="empty-s">如有需要，可从订单发起售后申请</text>
+    </view>
+    <view class="row" v-for="r in list" :key="r.id" @click="go(r)">
+      <view class="top-row">
+        <text class="oid">订单 {{ r.id }}</text>
+        <text class="st" :class="'st-' + r.statusKey">{{ r.statusText }}</text>
+      </view>
+      <view class="goods-row">
+        <image v-if="r.cover.length > 0" class="thumb" :src="r.cover" mode="aspectFill" />
+        <view v-else class="thumb" />
+        <view class="mid">
+          <text class="title">{{ r.goodsTitle || '商品' }}</text>
+          <text class="spec">{{ r.spec || '' }}</text>
+        </view>
+        <view class="pr">
+          <text class="price">¥{{ r.amount }}</text>
+        </view>
+      </view>
+      <view class="bot-row">
+        <text class="time">{{ r.time }}</text>
+        <text class="view-d">查看详情 ›</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockAfterSales, type MockAfterSales } from '@/utils/mall-mock.uts'
+  import { getMallUniIdToken } from '@/utils/mall-auth.uts'
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+
+  const list = ref<MockAfterSales[]>([])
+  const loading = ref(false)
+
+  onShow(() => {
+    loadList()
+  })
+
+  async function loadList(): Promise<void> {
+    loading.value = true
+    const token = getMallUniIdToken()
+    if (hasUniCloudMall() && token.length > 0) {
+      try {
+        // @ts-ignore
+        const co = uniCloud.importObject('mall-co')
+        const res = await Promise.race([
+          co.getMyAfterSalesList({ token, limit: 50 }) as Promise<UTSJSONObject>,
+          new Promise<UTSJSONObject>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 8000)
+          )
+        ])
+        if (res['errCode'] === 0) {
+          const arr = res['list'] as UTSJSONObject[]
+          const mapped: MockAfterSales[] = []
+          for (let i = 0; i < arr.length; i++) {
+            const o = arr[i] as UTSJSONObject
+            mapped.push({
+              id: (o['id'] as string) || '',
+              statusKey: (o['statusKey'] as string) || 'progress',
+              statusText: (o['statusText'] as string) || '待处理',
+              type: typeof o['type'] === 'number' ? (o['type'] as number) : 0,
+              reason: (o['reason'] as string) || '',
+              amount: (o['amount'] as string) || '0',
+              time: (o['time'] as string) || '',
+              goodsTitle: (o['goodsTitle'] as string) || '',
+              spec: (o['spec'] as string) || '',
+              cover: (o['cover'] as string) || '',
+              images: (o['images'] as string[]) || [],
+              desc: (o['desc'] as string) || '',
+              steps: (o['steps'] as any[]) || []
+            })
+          }
+          list.value = mapped
+          loading.value = false
+          return
+        }
+      } catch (e: any) {
+        // timeout or network error → fall through to mock
+      }
+    }
+    list.value = mockAfterSales()
+    loading.value = false
+  }
+
+  function go(r: MockAfterSales): void {
+    const q = [
+      'orderId=' + encodeURIComponent(r.id),
+      'statusKey=' + encodeURIComponent(r.statusKey),
+      'statusText=' + encodeURIComponent(r.statusText),
+      'type=' + encodeURIComponent(String(r.type)),
+      'reason=' + encodeURIComponent(r.reason),
+      'amount=' + encodeURIComponent(r.amount),
+      'time=' + encodeURIComponent(r.time),
+      'goodsTitle=' + encodeURIComponent(r.goodsTitle),
+      'spec=' + encodeURIComponent(r.spec),
+      'cover=' + encodeURIComponent(r.cover),
+      'desc=' + encodeURIComponent(r.desc)
+    ]
+    if (r.images.length > 0) {
+      q.push('images=' + encodeURIComponent(JSON.stringify(r.images)))
+    }
+    uni.navigateTo({ url: '/packages/mall/pay/after-sales-detail?' + q.join('&') })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.loading {
+  padding: 48px;
+  align-items: center;
+}
+.loading-t {
+  font-size: 14px;
+  color: #9ca3af;
+}
+.empty {
+  align-items: center;
+  padding: 60px 0;
+  flex-direction: column;
+}
+.empty-t {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+.empty-s {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+.row {
+  margin-bottom: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.top-row {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.oid {
+  font-size: 13px;
+  color: #9ca3af;
+}
+.st {
+  font-size: 13px;
+  font-weight: 700;
+}
+.st-progress {
+  color: #d97706;
+}
+.st-success {
+  color: #059669;
+}
+.st-rejected {
+  color: #dc2626;
+}
+.st-closed {
+  color: #9ca3af;
+}
+.goods-row {
+  flex-direction: row;
+  align-items: center;
+  padding-bottom: 14px;
+  border-bottom-width: 1px;
+  border-bottom-color: #f3f4f6;
+}
+.thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  background-color: #f3f4f6;
+}
+.mid {
+  flex: 1;
+  margin-left: 12px;
+  flex-direction: column;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.spec {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.pr {
+  align-items: flex-end;
+}
+.price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.bot-row {
+  margin-top: 12px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.time {
+  font-size: 12px;
+  color: #9ca3af;
+}
+.view-d {
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
+}
+</style>

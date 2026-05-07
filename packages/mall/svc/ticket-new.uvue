@@ -1,0 +1,115 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="lab">问题类型</text>
+      <view class="tags">
+        <text v-for="(x, i) in types" :key="'tp' + i.toString()" class="tag" :class="typeIdx === i ? 'tag-on' : ''" @click="setType(i)">{{ x }}</text>
+      </view>
+    </view>
+    <view class="card">
+      <text class="lab">描述</text>
+      <view class="ta-wrap">
+        <text v-if="body.length === 0" class="ta-ph">请描述遇到的问题、订单号等</text>
+        <textarea class="ta" :value="body" @input="onBody" />
+      </view>
+    </view>
+    <view class="btn" @click="submit">
+      <text class="btn-t">提交工单</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const types = ['物流售后', '发票/报销', '账号安全', '其他']
+  const typeIdx = ref(0)
+  const body = ref('')
+
+  function onBody(e : UniInputEvent) {
+    body.value = e.detail.value
+  }
+
+  function setType(i : number) : void {
+    typeIdx.value = i
+  }
+
+  function submit() : void {
+    if (body.value.length < 4) {
+      uni.showToast({ title: '请至少输入 4 个字', icon: 'none' })
+      return
+    }
+    uni.showToast({ title: '已提交（演示）', icon: 'success' })
+    setTimeout(() => {
+      uni.navigateBack({})
+    }, 500)
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.lab {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+.tags {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.tag {
+  margin-right: 8px;
+  margin-bottom: 8px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  background-color: #f3f4f6;
+  font-size: 13px;
+  color: #4b5563;
+}
+.tag-on {
+  background-color: rgba(5, 150, 105, 0.15);
+  color: #059669;
+  font-weight: 600;
+}
+.ta-wrap {
+  position: relative;
+  flex-direction: column;
+}
+.ta-ph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 15px;
+  color: #9ca3af;
+  z-index: 0;
+  pointer-events: none;
+}
+.ta {
+  min-height: 120px;
+  font-size: 15px;
+  color: #111827;
+  z-index: 1;
+  background-color: transparent;
+}
+.btn {
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

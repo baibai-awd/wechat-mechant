@@ -1,0 +1,49 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="h">开店引导</text>
+    <view class="step" v-for="(s, i) in steps" :key="'s' + i.toString()">
+      <view class="idx">
+        <text class="idx-n">{{ (i + 1).toString() }}</text>
+      </view>
+      <view class="mid">
+        <text class="st">{{ s.t }}</text>
+        <text class="sd">{{ s.d }}</text>
+        <view class="go" v-if="s.url.length > 0" @click="nav(s.url)">
+          <text class="go-t">去完成</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+    }
+  })
+
+  const steps = [
+    { t: '完善店铺资料', d: '上传 LOGO、简介与联系方式', url: '/packages/admin/shop-settings' },
+    { t: '发布首批商品', d: '至少 5 个 SPU 可获得流量加权（演示）', url: '/packages/admin/products' },
+    { t: '配置运费模板', d: '按地区设置运费与包邮门槛', url: '' }
+  ]
+
+  function nav(url : string) : void {
+    uni.navigateTo({ url: url })
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 20px 14px 36px; box-sizing: border-box; }
+.h { display: block; margin-bottom: 14px; font-size: 24px; line-height: 32px; font-weight: 700; color: #111827; }
+.step { margin-bottom: 10px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; display: flex; flex-direction: row; box-sizing: border-box; }
+.idx { width: 30px; height: 30px; margin-right: 12px; border-radius: 8px; background-color: #e6fffb; display: flex; align-items: center; justify-content: center; }
+.idx-n { font-size: 14px; line-height: 20px; font-weight: 700; color: #0f766e; }
+.mid { flex: 1; min-width: 0; }
+.st { display: block; font-size: 16px; line-height: 23px; font-weight: 700; color: #111827; }
+.sd { display: block; margin-top: 6px; font-size: 13px; line-height: 19px; color: #64748b; }
+.go { width: 76px; height: 34px; margin-top: 12px; border-radius: 8px; background-color: #0f766e; display: flex; align-items: center; justify-content: center; }
+.go-t { font-size: 13px; line-height: 18px; font-weight: 700; color: #ffffff; }
+</style>

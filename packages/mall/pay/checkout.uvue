@@ -1,0 +1,196 @@
+<template>
+  <view class="root">
+  <scroll-view class="scroll">
+    <view class="amount-card">
+      <text class="amount-t">应付金额</text>
+      <text class="amount-s">¥{{ amount }}</text>
+      <text class="amount-sub">{{ payHint }}</text>
+      <text v-if="orderNo.length > 0" class="amount-ord">订单号 {{ orderNo }}</text>
+    </view>
+
+    <view class="info-card">
+      <text class="info-t">说明</text>
+      <text class="info-body">演示收银台：不调起第三方支付。若已登录且带有云端订单号，点击按钮会将该单标为「已支付 / 待发货」（pay_channel=demo）；无订单号或未登录则仅跳转结果页。</text>
+    </view>
+
+    <view class="pad" />
+  </scroll-view>
+
+  <view class="footer">
+    <view class="go" @click="pay">
+      <text class="go-t">演示完成 ¥{{ amount }}</text>
+    </view>
+  </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { getMallUniIdToken, handleMallTokenInvalid } from '@/utils/mall-auth.uts'
+
+  const amount = ref('0.00')
+  const paySrc = ref('buy')
+  const orderNo = ref('')
+  const payHint = ref('演示流程：不接入第三方支付')
+
+  onLoad((options: OnLoadOptions) => {
+    const a = options['amount'] as string
+    if (a != null && a.length > 0) {
+      amount.value = decodeURIComponent(a)
+    }
+    const s = options['src'] as string
+    if (s === 'cart') {
+      paySrc.value = 'cart'
+    }
+    const ono = options['orderNo'] as string
+    if (ono != null && ono.length > 0) {
+      orderNo.value = decodeURIComponent(ono)
+    }
+    if (!hasUniCloudMall()) {
+      payHint.value = '未关联 uniCloud · 无云端订单号时为纯前端演示'
+    }
+  })
+
+  function navigateResult(ok: boolean): void {
+    let u = '/packages/mall/pay/pay-result?status=' + (ok ? 'success' : 'fail') + '&amount=' + encodeURIComponent(amount.value) + '&src=' + paySrc.value
+    if (orderNo.value.length > 0) {
+      u = u + '&orderNo=' + encodeURIComponent(orderNo.value)
+    }
+    uni.redirectTo({ url: u })
+  }
+
+  async function pay(): Promise<void> {
+    const yuan = parseFloat(amount.value)
+    if (isNaN(yuan) || yuan <= 0) {
+      uni.showToast({ title: '金额无效', icon: 'none' })
+      return
+    }
+    if (orderNo.value.length > 0 && hasUniCloudMall() && getMallUniIdToken().length === 0) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    if (orderNo.value.length > 0 && hasUniCloudMall() && getMallUniIdToken().length > 0) {
+      try {
+        // @ts-ignore
+        const co = uniCloud.importObject('mall-co')
+        const res = await co.markOrderPaidDemo({
+          token: getMallUniIdToken(),
+          order_no: orderNo.value
+        } as UTSJSONObject) as UTSJSONObject
+        const code = res['errCode'] as number
+        if (code != null && code !== 0) {
+          // token 失效
+          if (code === 401) {
+            handleMallTokenInvalid()
+            return
+          }
+          const msg = res['errMsg'] as string
+          uni.showToast({ title: msg != null && msg.length > 0 ? msg : '订单状态未更新', icon: 'none' })
+          return
+        }
+      } catch (e) {
+        handleMallTokenInvalid()
+        return
+      }
+    }
+    navigateResult(true)
+  }
+</script>
+
+<style>
+.root {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f2f2f7;
+}
+
+.scroll {
+  flex: 1;
+  background-color: #f2f2f7;
+}
+
+.amount-card {
+  margin: 16px;
+  padding: 28px 20px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  align-items: center;
+  flex-direction: column;
+}
+
+.amount-t {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.amount-s {
+  margin-top: 8px;
+  font-size: 36px;
+  font-weight: 800;
+  color: #059669;
+}
+
+.amount-sub {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.amount-ord {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #374151;
+  text-align: center;
+}
+
+.info-card {
+  margin: 0 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+
+.info-t {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 10px;
+}
+
+.info-body {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.55;
+}
+
+.pad {
+  height: 88px;
+}
+
+.footer {
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border-top-width: 1px;
+  border-top-color: #e5e5ea;
+}
+
+.go {
+  padding: 14px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  align-items: center;
+  justify-content: center;
+}
+
+.go-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

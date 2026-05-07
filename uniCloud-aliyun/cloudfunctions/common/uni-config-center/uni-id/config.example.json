@@ -1,0 +1,5 @@
+{
+  "passwordSecret": "replace-with-your-password-secret",
+  "tokenSecret": "replace-with-your-token-secret",
+  "tokenExpiresIn": 7200
+}

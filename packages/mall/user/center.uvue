@@ -1,0 +1,143 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="head">
+      <view class="avatar">
+        <text class="avatar-t">用</text>
+      </view>
+      <view class="head-m">
+        <text class="nick">商城用户</text>
+        <text class="sub">黄金会员 · 积分 1280</text>
+      </view>
+      <text class="edit" @click="goProfile">编辑 ›</text>
+    </view>
+    <view class="card">
+      <view class="row" @click="goOrders">
+        <text class="row-t">我的订单</text>
+        <text class="row-a">›</text>
+      </view>
+      <view class="row" @click="goAddr">
+        <text class="row-t">收货地址</text>
+        <text class="row-a">›</text>
+      </view>
+      <view class="row" @click="goCoupon">
+        <text class="row-t">优惠券</text>
+        <text class="row-a">›</text>
+      </view>
+      <view class="row" @click="goSec">
+        <text class="row-t">账户安全</text>
+        <text class="row-a">›</text>
+      </view>
+    </view>
+    <view class="btn-out" @click="outDemo">
+      <text class="btn-out-t">退出登录（演示）</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getMallUniIdToken, mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  function goProfile() : void {
+    mallNavigateTo('/packages/mall/user/profile')
+  }
+  function goOrders() : void {
+    if (getMallUniIdToken().length === 0) {
+      mallNavigateTo('/packages/mall/user/login')
+      return
+    }
+    mallNavigateTo('/packages/mall/order/order-list')
+  }
+  function goAddr() : void {
+    mallNavigateTo('/packages/mall/user/address-list')
+  }
+  function goCoupon() : void {
+    mallNavigateTo('/packages/mall/pay/coupons')
+  }
+  function goSec() : void {
+    mallNavigateTo('/packages/mall/user/security')
+  }
+  function outDemo() : void {
+    uni.showToast({ title: '演示环境已退出', icon: 'none' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+}
+.head {
+  margin: 16px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  flex-direction: row;
+  align-items: center;
+}
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-color: #ffffff;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-t {
+  font-size: 22px;
+  font-weight: 700;
+  color: #059669;
+}
+.head-m {
+  flex: 1;
+  margin-left: 14px;
+  flex-direction: column;
+}
+.nick {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.edit {
+  font-size: 14px;
+  color: #ffffff;
+}
+.card {
+  margin: 0 16px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.row {
+  padding: 16px;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom-width: 1px;
+  border-bottom-color: #f2f2f7;
+}
+.row-t {
+  font-size: 15px;
+  color: #1f2937;
+}
+.row-a {
+  font-size: 16px;
+  color: #9ca3af;
+}
+.btn-out {
+  margin: 24px 16px;
+  padding: 14px;
+  border-radius: 16px;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  background-color: #ffffff;
+  align-items: center;
+}
+.btn-out-t {
+  font-size: 15px;
+  color: #6b7280;
+}
+</style>

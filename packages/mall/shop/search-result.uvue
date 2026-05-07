@@ -1,0 +1,73 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="tip">关键词「{{ kw }}」 · 共 {{ list.length }} 件</text>
+    <view class="grid">
+      <view class="cell" v-for="p in list" :key="p.id" @click="goPd(p.id)">
+        <image v-if="p.cover != null && p.cover.length > 0" class="cover" :src="p.cover" mode="aspectFill" />
+        <view v-else class="cover" />
+        <text class="t">{{ p.title }}</text>
+        <text class="price">¥{{ p.priceYuan }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { listMallProductBriefs, getSampleProductCover, hasUniCloudMall, type MallProductBrief } from '@/utils/mall-catalog.uts'
+  import { filterProductsByKw } from '@/utils/mall-mock.uts'
+
+  const kw = ref('')
+  const list = ref<MallProductBrief[]>([])
+
+  onLoad((options : OnLoadOptions) => {
+    const raw = options['kw'] as string
+    kw.value = raw != null ? decodeURIComponent(raw) : ''
+    list.value = filterProductsByKw(listMallProductBriefs(), kw.value)
+    loadCloud()
+  })
+
+  async function loadCloud() : Promise<void> {
+    if (!hasUniCloudMall()) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getProductList({ limit: 40, kw: kw.value }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        if (arr != null && arr.length > 0) {
+          const out: MallProductBrief[] = []
+          for (let i = 0; i < arr.length; i++) {
+            const o = arr[i]
+            const tg = o['tag']
+            const cv = o['cover']
+            out.push({
+              id: o['id'] as string,
+              title: o['title'] as string,
+              priceYuan: o['priceYuan'] as string,
+              tag: tg != null ? (tg as string) : '',
+              sub: '',
+              cover: cv != null && (cv as string).length > 0 ? (cv as string) : getSampleProductCover(i)
+            })
+          }
+          list.value = out
+        }
+      }
+    } catch (e) {
+      // 保留本地筛选结果
+    }
+  }
+
+  function goPd(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/shop/product-detail?id=' + id })
+  }
+</script>
+<style>
+.sc { background-color: #f7f8fa; padding: 12px; }
+.tip { font-size: 13px; color: #667085; margin-bottom: 12px; margin-left: 4px; font-weight: 600; }
+.grid { flex-direction: row; flex-wrap: wrap; }
+.cell { width: 50%; padding: 6px; flex-direction: column; }
+.cover { width: 100%; height: 132px; border-radius: 8px; background-color: #e9edf2; }
+.t { margin-top: 8px; font-size: 14px; color: #1f2937; font-weight: 600; line-height: 1.35; }
+.price { margin-top: 5px; font-size: 17px; font-weight: 800; color: #0f766e; }
+</style>

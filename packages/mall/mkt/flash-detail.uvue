@@ -1,0 +1,182 @@
+<template>
+  <view class="root">
+    <scroll-view class="sc" style="flex: 1;" scroll-y="true">
+      <view class="hero">
+        <image v-if="row.cover.length > 0" class="hero-img" :src="row.cover" mode="aspectFill" />
+        <view v-else class="hero-img" />
+      </view>
+
+      <view class="price-band">
+        <view class="price-left">
+          <text class="flash-price">¥{{ row.priceYuan }}</text>
+          <text class="old-price">¥{{ row.lineYuan }}</text>
+        </view>
+        <view class="count-box">
+          <text class="count-label">距结束</text>
+          <text class="count-val">{{ countdown }}</text>
+        </view>
+      </view>
+
+      <view class="card">
+        <view class="title-row">
+          <text class="title">{{ brief.title }}</text>
+          <text class="status">{{ row.statusText }}</text>
+        </view>
+        <text class="sub">{{ brief.sub }}</text>
+        <view class="meta-row">
+          <text class="meta">{{ row.limitText }}</text>
+          <text class="meta">秒杀库存 {{ leftStock }} 件</text>
+          <text class="meta">{{ row.tag }}</text>
+        </view>
+        <view class="progress">
+          <view class="progress-fill" :style="{ width: progressWidth }" />
+        </view>
+        <text class="sold">已抢 {{ row.sold }}/{{ row.stock }}</text>
+      </view>
+
+      <view class="card">
+        <text class="card-h">秒杀规则</text>
+        <text class="rule">1. 秒杀商品按活动价下单，库存有限，售完即止。</text>
+        <text class="rule">2. 每个用户按活动限购数量购买，超出数量按原价购买。</text>
+        <text class="rule">3. 演示版暂不做真实库存锁定，正式版应在云端校验活动与库存。</text>
+      </view>
+
+      <view class="bottom-pad" />
+    </scroll-view>
+
+    <view class="bottom">
+      <view class="qty">
+        <text class="qty-l">数量</text>
+        <view class="qty-ctl">
+          <view class="qty-btn" @click="chgQty(-1)">
+            <text class="qty-btn-t">−</text>
+          </view>
+          <text class="qty-n">{{ qty }}</text>
+          <view class="qty-btn" @click="chgQty(1)">
+            <text class="qty-btn-t">+</text>
+          </view>
+        </view>
+      </view>
+      <view class="buy" @click="goBuy">
+        <text class="buy-t">立即抢购</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { getProductBrief, type MallProductBrief } from '@/utils/mall-catalog.uts'
+  import { findMockFlashRow, type MockMktRow } from '@/utils/mall-mock.uts'
+
+  const pid = ref('p1')
+  const brief = ref<MallProductBrief>(getProductBrief('p1'))
+  const row = ref<MockMktRow>(findMockFlashRow('p1'))
+  const countdown = ref('02:15:33')
+  const qty = ref(1)
+
+  const leftStock = computed<number>(() => {
+    const left = row.value.stock - row.value.sold
+    return left > 0 ? left : 0
+  })
+
+  const progressWidth = computed<string>(() => {
+    if (row.value.stock <= 0) {
+      return '0%'
+    }
+    const pct = Math.min(100, Math.round(row.value.sold * 100 / row.value.stock))
+    return pct.toString() + '%'
+  })
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['productId'] as string
+    if (id != null && id.length > 0) {
+      pid.value = id
+    }
+    brief.value = getProductBrief(pid.value)
+    row.value = findMockFlashRow(pid.value)
+  })
+
+  function chgQty(delta : number) : void {
+    const n = qty.value + delta
+    const max = row.value.limitText.indexOf('2') >= 0 ? 2 : 1
+    if (n >= 1 && n <= max && n <= leftStock.value) {
+      qty.value = n
+    } else if (n > max) {
+      uni.showToast({ title: '已达活动限购数量', icon: 'none' })
+    } else if (n > leftStock.value) {
+      uni.showToast({ title: '秒杀库存不足', icon: 'none' })
+    }
+  }
+
+  function goBuy() : void {
+    if (leftStock.value <= 0) {
+      uni.showToast({ title: '已售罄', icon: 'none' })
+      return
+    }
+    uni.navigateTo({
+      url: '/packages/mall/order/confirm?src=flash&productId=' + pid.value +
+        '&qty=' + qty.value.toString() +
+        '&flashPrice=' + encodeURIComponent(row.value.priceYuan)
+    })
+  }
+</script>
+
+<style>
+.root { flex: 1; background-color: #f7f8fa; flex-direction: column; }
+.sc { background-color: #f7f8fa; }
+.hero { height: 260px; background-color: #fee2e2; }
+.hero-img { width: 100%; height: 260px; background-color: #fee2e2; }
+.price-band {
+  padding: 13px 16px;
+  background-color: #dc2626;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.price-left { flex-direction: row; align-items: baseline; }
+.flash-price { font-size: 28px; font-weight: 900; color: #ffffff; }
+.old-price { margin-left: 10px; font-size: 14px; color: rgba(255, 255, 255, 0.72); text-decoration: line-through; }
+.count-box { align-items: flex-end; }
+.count-label { font-size: 11px; color: rgba(255, 255, 255, 0.78); }
+.count-val { margin-top: 3px; font-size: 15px; font-weight: 900; color: #ffffff; }
+.card {
+  margin: 12px 14px 0;
+  padding: 14px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: column;
+}
+.title-row { flex-direction: row; align-items: center; justify-content: space-between; }
+.title { flex: 1; font-size: 18px; font-weight: 800; color: #111827; line-height: 1.35; }
+.status { margin-left: 8px; padding: 3px 8px; border-radius: 8px; background-color: #fff1f2; color: #be123c; font-size: 12px; font-weight: 800; }
+.sub { margin-top: 8px; font-size: 13px; color: #64748b; line-height: 1.45; }
+.meta-row { margin-top: 12px; flex-direction: row; flex-wrap: wrap; }
+.meta { margin-right: 8px; margin-bottom: 6px; padding: 4px 8px; border-radius: 8px; background-color: #fffbeb; color: #b45309; font-size: 12px; font-weight: 700; }
+.progress { margin-top: 8px; height: 8px; border-radius: 8px; background-color: #fee2e2; overflow: hidden; }
+.progress-fill { height: 8px; border-radius: 8px; background-color: #dc2626; }
+.sold { margin-top: 8px; font-size: 12px; color: #8a94a6; }
+.card-h { font-size: 15px; font-weight: 800; color: #111827; margin-bottom: 8px; }
+.rule { margin-top: 6px; font-size: 13px; color: #475569; line-height: 1.5; }
+.bottom-pad { height: 92px; }
+.bottom {
+  min-height: 72px;
+  padding: 12px 14px;
+  background-color: #ffffff;
+  border-top-width: 1px;
+  border-top-color: #e6e8ec;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.qty { flex-direction: row; align-items: center; }
+.qty-l { margin-right: 10px; font-size: 13px; color: #64748b; font-weight: 700; }
+.qty-ctl { flex-direction: row; align-items: center; }
+.qty-btn { width: 32px; height: 32px; border-radius: 8px; background-color: #f1f5f9; align-items: center; justify-content: center; }
+.qty-btn-t { font-size: 18px; font-weight: 900; color: #334155; }
+.qty-n { min-width: 32px; text-align: center; font-size: 15px; font-weight: 900; color: #111827; }
+.buy { width: 130px; height: 46px; border-radius: 8px; background-color: #dc2626; align-items: center; justify-content: center; }
+.buy-t { font-size: 15px; font-weight: 900; color: #ffffff; }
+</style>

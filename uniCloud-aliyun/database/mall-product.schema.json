@@ -1,0 +1,29 @@
+{
+  "bsonType": "object",
+  "required": ["title", "price_cent"],
+  "permission": {
+    "read": true,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "系统自动生成" },
+    "title": { "bsonType": "string" },
+    "subtitle": { "bsonType": "string" },
+    "price_cent": { "bsonType": "int", "description": "售价分" },
+    "market_price_cent": { "bsonType": "int" },
+    "cover": { "bsonType": "string", "description": "主图 URL" },
+    "images": { "bsonType": "array", "description": "多图" },
+    "video_url": { "bsonType": "string" },
+    "category_id": { "bsonType": "string" },
+    "tag": { "bsonType": "string", "description": "列表角标：热卖/新品等" },
+    "status": { "bsonType": "string", "description": "on_sale | off" },
+    "stock": { "bsonType": "int" },
+    "sales": { "bsonType": "int" },
+    "skus": { "bsonType": "array", "description": "SKU 列表 JSON" },
+    "detail_html": { "bsonType": "string" },
+    "created_at": { "bsonType": "number" },
+    "updated_at": { "bsonType": "number" }
+  }
+}

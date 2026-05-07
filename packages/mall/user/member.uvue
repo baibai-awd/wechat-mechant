@@ -1,0 +1,111 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="level">
+      <text class="level-t">黄金会员</text>
+      <text class="level-s">再消费 ¥299 升级铂金 · 享 9.5 折</text>
+      <view class="bar-bg">
+        <view class="bar-fill" />
+      </view>
+      <text class="level-tip">成长值 820 / 1500</text>
+    </view>
+    <view class="card">
+      <text class="h">会员特权</text>
+      <view class="perk" v-for="(p, i) in perks" :key="'pk' + i.toString()">
+        <text class="perk-dot">✓</text>
+        <text class="perk-t">{{ p }}</text>
+      </view>
+    </view>
+    <view class="btn-main" @click="toast">
+      <text class="btn-main-t">积分兑换（演示）</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const perks = ['每月专享券包', '生日双倍积分', '专属客服优先接入', '退换货上门取件']
+  function toast() : void {
+    uni.showToast({ title: '敬请期待', icon: 'none' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.level {
+  padding: 24px 20px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.level-t {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fef3c7;
+}
+.level-s {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.bar-bg {
+  margin-top: 16px;
+  height: 8px;
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+.bar-fill {
+  height: 8px;
+  width: 55%;
+  border-radius: 4px;
+  background-color: #10b981;
+}
+.level-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.card {
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.h {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+.perk {
+  flex-direction: row;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.perk-dot {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 700;
+  margin-right: 8px;
+}
+.perk-t {
+  flex: 1;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+.btn-main {
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn-main-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

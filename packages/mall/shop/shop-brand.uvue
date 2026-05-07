@@ -1,0 +1,117 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="banner">
+      <text class="banner-t">mechant 官方店</text>
+      <text class="banner-s">正品保证 · 48h 发货 · 7 天无理由</text>
+    </view>
+    <text class="h">店铺推荐</text>
+    <view class="grid">
+      <view class="cell" v-for="p in list" :key="p.id" @click="goPd(p.id)">
+        <image v-if="p.cover != null && p.cover.length > 0" class="cover" :src="p.cover" mode="aspectFill" />
+        <view v-else class="cover" />
+        <text class="t">{{ p.title }}</text>
+        <text class="price">¥{{ p.priceYuan }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { listMallProductBriefs, getSampleProductCover, hasUniCloudMall, type MallProductBrief } from '@/utils/mall-catalog.uts'
+
+  const list = ref<MallProductBrief[]>(listMallProductBriefs())
+
+  onShow(() => {
+    list.value = listMallProductBriefs()
+    loadCloud()
+  })
+
+  async function loadCloud() : Promise<void> {
+    if (!hasUniCloudMall()) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getProductList({ limit: 40, kw: '' }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        if (arr != null && arr.length > 0) {
+          const out: MallProductBrief[] = []
+          for (let i = 0; i < arr.length; i++) {
+            const o = arr[i]
+            const tg = o['tag']
+            const cv = o['cover']
+            out.push({
+              id: o['id'] as string,
+              title: o['title'] as string,
+              priceYuan: o['priceYuan'] as string,
+              tag: tg != null ? (tg as string) : '',
+              sub: '',
+              cover: cv != null && (cv as string).length > 0 ? (cv as string) : getSampleProductCover(i)
+            })
+          }
+          list.value = out
+        }
+      }
+    } catch (e) {}
+  }
+
+  function goPd(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/shop/product-detail?id=' + id })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+}
+.banner {
+  margin: 12px 16px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  flex-direction: column;
+}
+.banner-t {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.banner-s {
+  margin-top: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+}
+.h {
+  margin: 8px 16px 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.grid {
+  padding: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.cell {
+  width: 50%;
+  padding: 6px;
+  flex-direction: column;
+}
+.cover {
+  width: 100%;
+  height: 130px;
+  border-radius: 16px;
+  background-color: #e5e5ea;
+}
+.t {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #1f2937;
+}
+.price {
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #059669;
+}
+</style>

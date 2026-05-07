@@ -1,0 +1,42 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card" v-for="(s, i) in sections" :key="'d' + i.toString()">
+      <text class="h">{{ s.t }}</text>
+      <text class="p">{{ s.c }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const sections = [
+    { t: '配送范围', c: '默认支持中国大陆大部分地区，偏远地区以结算页提示为准；港澳台及海外暂不支持（演示）。' },
+    { t: '发货时效', c: '现货订单付款后 48 小时内发出；预售商品以商详标注时间为准。' },
+    { t: '运费说明', c: '单笔满足活动包邮条件则免运费，不满足时按重量/地区计价，最终以订单页为准。' },
+    { t: '签收与验货', c: '请当面验货，如有破损可拒收并联系客服；签收后非质量问题退换按平台规则执行。' }
+  ]
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.h {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 10px;
+}
+.p {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.65;
+}
+</style>

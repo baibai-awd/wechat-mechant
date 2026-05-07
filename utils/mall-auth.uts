@@ -1,0 +1,97 @@
+/** 商城 uni-id token（mall-co 签发，与 uni-id-common 校验一致） */
+
+/** Web 上 type=number 易出现 11 位+.0，仅用文本框 + 仅保留数字更安全 */
+export function normalizePhoneInput(raw: string | null): string {
+  if (raw == null) {
+    return ''
+  }
+  let out = ''
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw.charAt(i)
+    if (c >= '0' && c <= '9') {
+      out = out + c
+    }
+    if (out.length >= 11) {
+      break
+    }
+  }
+  return out
+}
+
+const TOKEN_KEY = 'mall_uni_id_token'
+/** uni-pay-co / uni-id-common 默认读取的 token 键 */
+const UNI_ID_TOKEN_STD = 'uni_id_token'
+const USER_LABEL_KEY = 'mall_user_label'
+
+export function getMallUniIdToken(): string {
+  const t = uni.getStorageSync(TOKEN_KEY)
+  if (t != null && (t as string).length > 0) {
+    return t as string
+  }
+  const u = uni.getStorageSync(UNI_ID_TOKEN_STD)
+  if (u != null && (u as string).length > 0) {
+    return u as string
+  }
+  return ''
+}
+
+export function getMallUserLabel(): string {
+  const s = uni.getStorageSync(USER_LABEL_KEY)
+  if (s == null) {
+    return ''
+  }
+  return s as string
+}
+
+export function setMallAuth(token: string, label: string): void {
+  uni.setStorageSync(TOKEN_KEY, token)
+  uni.setStorageSync(UNI_ID_TOKEN_STD, token)
+  uni.setStorageSync(USER_LABEL_KEY, label)
+}
+
+export function clearMallAuth(): void {
+  uni.removeStorageSync(TOKEN_KEY)
+  uni.removeStorageSync(UNI_ID_TOKEN_STD)
+  uni.removeStorageSync(USER_LABEL_KEY)
+}
+
+/** token 失效：清除本地登录态并跳转登录页 */
+export function handleMallTokenInvalid(msg?: string): void {
+  clearMallAuth()
+  uni.showToast({
+    title: msg != null && msg.length > 0 ? msg : '登录已失效，请重新登录',
+    icon: 'none'
+  })
+  setTimeout(() => {
+    uni.reLaunch({
+      url: '/pages/mall/mine/mine'
+    })
+  }, 400)
+}
+
+export function maskMobile(mobile: string): string {
+  if (mobile.length !== 11) {
+    return mobile
+  }
+  return mobile.substring(0, 3) + '****' + mobile.substring(7)
+}
+
+/**
+ * 微信小程序：主包 Tab 首跳商城分包易 navigateTo timeout；失败时延迟重试一次。
+ * 放在本文件以便与 token 等一并打入主包 utils，避免独立 mall-nav 模块在开发者工具里未注册。
+ */
+export function mallNavigateTo(url: string): void {
+  uni.navigateTo({
+    url: url,
+    fail: (_err: any) => {
+      setTimeout(() => {
+        uni.navigateTo({
+          url: url,
+          fail: () => {
+            uni.showToast({ title: '页面打开失败，请稍后再试', icon: 'none' })
+          }
+        })
+      }, 480)
+    }
+  })
+}

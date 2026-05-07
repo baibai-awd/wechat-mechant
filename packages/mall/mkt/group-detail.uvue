@@ -1,0 +1,132 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="hero" />
+    <view class="card">
+      <text class="t">{{ brief.title }}</text>
+      <text class="sub">{{ brief.sub }}</text>
+      <view class="team">
+        <text class="team-t">还差 1 人成团 · 剩余 23:59:08</text>
+        <view class="avatars">
+          <view class="av" v-for="i in 2" :key="'a' + i.toString()">
+            <text class="av-i">{{ i === 1 ? '我' : '?' }}</text>
+          </view>
+        </view>
+      </view>
+      <view class="pr">
+        <text class="g">¥{{ groupPrice }}</text>
+        <text class="o">单独买 ¥{{ brief.priceYuan }}</text>
+      </view>
+    </view>
+    <view class="btn-main" @click="goBuy">
+      <text class="btn-t">参与拼团</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getProductBrief, type MallProductBrief } from '@/utils/mall-catalog.uts'
+
+  const pid = ref('p2')
+  const brief = ref<MallProductBrief>(getProductBrief('p2'))
+  const groupPrice = ref('99.00')
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['productId'] as string
+    if (id != null && id.length > 0) {
+      pid.value = id
+    }
+    brief.value = getProductBrief(pid.value)
+    const p = parseFloat(brief.value.priceYuan)
+    groupPrice.value = (p * 0.88).toFixed(2)
+  })
+
+  function goBuy() : void {
+    uni.navigateTo({ url: '/packages/mall/shop/product-detail?id=' + pid.value })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+}
+.hero {
+  height: 200px;
+  background: linear-gradient(180deg, #a7f3d0 0%, #f2f2f7 100%);
+}
+.card {
+  margin: -20px 16px 16px;
+  padding: 20px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.t {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+.sub {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.team {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background-color: #ecfdf5;
+  flex-direction: column;
+}
+.team-t {
+  font-size: 13px;
+  font-weight: 600;
+  color: #047857;
+}
+.avatars {
+  margin-top: 12px;
+  flex-direction: row;
+}
+.av {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: #ffffff;
+  border-width: 2px;
+  border-color: #6ee7b7;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+}
+.av-i {
+  font-size: 14px;
+  font-weight: 600;
+  color: #059669;
+}
+.pr {
+  margin-top: 16px;
+  flex-direction: row;
+  align-items: baseline;
+}
+.g {
+  font-size: 26px;
+  font-weight: 800;
+  color: #059669;
+}
+.o {
+  margin-left: 12px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+.btn-main {
+  margin: 0 16px 32px;
+  padding: 14px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  align-items: center;
+}
+.btn-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

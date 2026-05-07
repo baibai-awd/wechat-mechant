@@ -1,0 +1,22 @@
+{
+  "bsonType": "object",
+  "required": ["user_id", "order_id", "amount_cent", "direction"],
+  "permission": {
+    "read": "doc.user_id == auth.uid",
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "系统自动生成" },
+    "user_id": { "bsonType": "string" },
+    "order_id": { "bsonType": "string" },
+    "amount_cent": { "bsonType": "int" },
+    "direction": { "bsonType": "string", "description": "pay | refund" },
+    "channel": { "bsonType": "string", "description": "wxpay | alipay | bank | cod" },
+    "status": { "bsonType": "string" },
+    "trade_no": { "bsonType": "string" },
+    "meta": { "bsonType": "object" },
+    "created_at": { "bsonType": "timestamp" }
+  }
+}

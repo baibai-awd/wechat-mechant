@@ -1,0 +1,348 @@
+/** 商城分包演示数据（可后续替换为 uniCloud） */
+
+import { getProductBrief, type MallProductBrief } from '@/utils/mall-catalog.uts'
+
+export type MockOrderRow = {
+  id: string
+  statusText: string
+  goodsTitle: string
+  spec: string
+  priceYuan: string
+  count: number
+  time: string
+  productId: string
+  cover: string
+  /** 整单实付（含运费），与云端 total_cent 一致 */
+  payTotalYuan: string
+}
+
+export function mockOrders(): MockOrderRow[] {
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  const d = now.getDate()
+  const today = `${y}-${pad(m)}-${pad(d)}`
+
+  function daysAgo(days: number, hour: number, min: number): string {
+    const dt = new Date(now.getTime() - days * 86400000)
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ${pad(hour)}:${pad(min)}`
+  }
+
+  return [
+    { id: 'ORD' + y + pad(m) + '001', statusText: '待付款', goodsTitle: '示例商品 B', spec: '默认规格 ×1', priceYuan: '128.00', count: 1, time: today + ' 08:00', productId: 'p2', cover: '', payTotalYuan: '136.00' },
+    { id: 'ORD' + y + pad(m) + '002', statusText: '待发货', goodsTitle: '示例商品 A', spec: '默认规格 ×1', priceYuan: '99.00', count: 1, time: daysAgo(1, 10, 20), productId: 'p1', cover: '', payTotalYuan: '107.00' },
+    { id: 'ORD' + y + pad(m) + '003', statusText: '待收货', goodsTitle: '示例商品 D', spec: '默认规格 ×2', priceYuan: '199.00', count: 2, time: daysAgo(3, 16, 5), productId: 'p4', cover: '', payTotalYuan: '406.00' },
+    { id: 'ORD' + y + pad(m) + '004', statusText: '已完成', goodsTitle: '示例商品 C', spec: '默认规格 ×1', priceYuan: '59.00', count: 1, time: daysAgo(7, 9, 12), productId: 'p3', cover: '', payTotalYuan: '67.00' }
+  ]
+}
+
+export function findMockOrder(id: string): MockOrderRow {
+  const rows = mockOrders()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockAddress = {
+  id: string
+  name: string
+  phone: string
+  region: string
+  detail: string
+  isDefault: boolean
+}
+
+export function mockAddresses(): MockAddress[] {
+  return [
+    { id: 'a1', name: '张三', phone: '13800000000', region: '北京市朝阳区', detail: '示例街道 88 号 501', isDefault: true },
+    { id: 'a2', name: '李四', phone: '13900000000', region: '上海市浦东新区', detail: '滨江大道 1 号 B 座', isDefault: false }
+  ]
+}
+
+export type MockCoupon = {
+  id: string
+  title: string
+  sub: string
+  amountText: string
+  expired: string
+  used: boolean
+}
+
+export function mockCoupons(): MockCoupon[] {
+  return [
+    { id: 'c1', title: '店铺满减券', sub: '满 199 元可用', amountText: '¥20', expired: '2026-06-30', used: false },
+    { id: 'c2', title: '运费券', sub: '限自营商品', amountText: '免邮', expired: '2026-05-01', used: false },
+    { id: 'c3', title: '新客礼包', sub: '已使用', amountText: '¥10', expired: '2026-01-10', used: true }
+  ]
+}
+
+export type MockMktRow = {
+  productId: string
+  title: string
+  priceYuan: string
+  lineYuan: string
+  tag: string
+  cover: string
+  stock: number
+  sold: number
+  limitText: string
+  statusText: string
+}
+
+export function mockFlashRows(): MockMktRow[] {
+  const p1 = getProductBrief('p1')
+  const p3 = getProductBrief('p3')
+  const p4 = getProductBrief('p4')
+  return [
+    { productId: 'p1', title: p1.title + ' · 秒杀', priceYuan: '79.00', lineYuan: p1.priceYuan, tag: '仅剩 12 件', cover: p1.cover, stock: 80, sold: 68, limitText: '限购 1 件', statusText: '抢购中' },
+    { productId: 'p3', title: p3.title + ' · 秒杀', priceYuan: '49.00', lineYuan: p3.priceYuan, tag: '即将售罄', cover: p3.cover, stock: 60, sold: 53, limitText: '限购 2 件', statusText: '抢购中' },
+    { productId: 'p4', title: p4.title + ' · 秒杀', priceYuan: '168.00', lineYuan: p4.priceYuan, tag: '24h 榜 TOP', cover: p4.cover, stock: 120, sold: 86, limitText: '限购 1 件', statusText: '抢购中' }
+  ]
+}
+
+export function findMockFlashRow(pid: string): MockMktRow {
+  const rows = mockFlashRows()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].productId === pid) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export function mockGroupRows(): MockMktRow[] {
+  const p2 = getProductBrief('p2')
+  const p4 = getProductBrief('p4')
+  return [
+    { productId: 'p2', title: p2.title + ' · 2 人团', lineYuan: p2.priceYuan, priceYuan: '99.00', tag: '差 1 人成团', cover: p2.cover, stock: 50, sold: 18, limitText: '2 人成团', statusText: '拼团中' },
+    { productId: 'p4', title: p4.title + ' · 3 人团', lineYuan: p4.priceYuan, priceYuan: '159.00', tag: '热销拼团', cover: p4.cover, stock: 80, sold: 36, limitText: '3 人成团', statusText: '拼团中' }
+  ]
+}
+
+export type MockBill = { id: string; title: string; amount: string; time: string; payMethod: string }
+export function mockBills(): MockBill[] {
+  return [
+    { id: 'B20260401001', title: '订单 ORD240401', amount: '107.00', time: '2026-04-01 10:21:05', payMethod: '微信支付' },
+    { id: 'B20260328002', title: '订单 ORD240328S', amount: '406.00', time: '2026-03-28 16:06:18', payMethod: '支付宝' }
+  ]
+}
+
+export function findMockBill(id: string): MockBill {
+  const rows = mockBills()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockRefund = { id: string; status: string; goodsTitle: string; amount: string; time: string }
+export function mockRefunds(): MockRefund[] {
+  return [{ id: 'RF240402', status: '退款成功', goodsTitle: '示例商品 C', amount: '59.00', time: '2026-04-02 11:00' }]
+}
+
+export function findMockRefund(id: string): MockRefund {
+  const rows = mockRefunds()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockAfterSalesStep = {
+  title: string
+  time: string
+  desc: string
+}
+
+export type MockAfterSales = {
+  id: string
+  statusKey: string
+  statusText: string
+  type: number
+  reason: string
+  amount: string
+  time: string
+  goodsTitle: string
+  spec: string
+  cover: string
+  images: string[]
+  steps: MockAfterSalesStep[]
+  desc: string
+}
+
+export function mockAfterSales(): MockAfterSales[] {
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const y = now.getFullYear()
+  const m = now.getMonth() + 1
+  const d = now.getDate()
+  const today = `${y}-${pad(m)}-${pad(d)}`
+  const yesterday = `${y}-${pad(m)}-${pad(d - 1)}`
+
+  return [
+    {
+      id: 'AS' + y + pad(m) + '001',
+      statusKey: 'progress',
+      statusText: '处理中',
+      type: 1,
+      reason: '商品破损',
+      amount: '99.00',
+      time: today + ' 10:30',
+      goodsTitle: '示例商品 A',
+      spec: '默认规格 ×1',
+      cover: '',
+      images: [],
+      desc: '收到商品外包装破损，商品本身也有划痕，希望退货退款。',
+      steps: [
+        { title: '提交售后申请', time: today + ' 10:30', desc: '等待商家处理' },
+        { title: '商家处理中', time: today + ' 14:20', desc: '商家已审核通过，请按下方地址退货' },
+        { title: '待买家退货', time: '', desc: '请在 7 天内寄回商品' }
+      ]
+    },
+    {
+      id: 'AS' + y + pad(m) + '002',
+      statusKey: 'success',
+      statusText: '退款成功',
+      type: 0,
+      reason: '商品与描述不符',
+      amount: '59.00',
+      time: yesterday + ' 09:15',
+      goodsTitle: '示例商品 C',
+      spec: '默认规格 ×1',
+      cover: '',
+      images: [],
+      desc: '实物与图片描述差异较大，申请全额退款。',
+      steps: [
+        { title: '提交售后申请', time: yesterday + ' 09:15', desc: '' },
+        { title: '商家处理中', time: yesterday + ' 11:00', desc: '商家同意退款' },
+        { title: '退款完成', time: yesterday + ' 16:30', desc: '退款已原路返回支付账户' }
+      ]
+    },
+    {
+      id: 'AS' + y + pad(m) + '003',
+      statusKey: 'rejected',
+      statusText: '已拒绝',
+      type: 1,
+      reason: '其他',
+      amount: '199.00',
+      time: yesterday + ' 20:00',
+      goodsTitle: '示例商品 D',
+      spec: '默认规格 ×2',
+      cover: '',
+      images: [],
+      desc: '商品有质量问题，要求退货退款。',
+      steps: [
+        { title: '提交售后申请', time: yesterday + ' 20:00', desc: '' },
+        { title: '商家处理中', time: today + ' 09:00', desc: '商家拒绝了申请，原因：超出退货期限' },
+        { title: '可联系客服申诉', time: '', desc: '如有异议请联系平台客服' }
+      ]
+    }
+  ]
+}
+
+export function findMockAfterSales(id: string): MockAfterSales {
+  const rows = mockAfterSales()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockTicket = { id: string; title: string; status: string; time: string }
+export function mockTickets(): MockTicket[] {
+  return [
+    { id: 'TK001', title: '物流延迟咨询', status: '处理中', time: '2026-04-02' },
+    { id: 'TK002', title: '发票申请', status: '已关闭', time: '2026-03-20' }
+  ]
+}
+
+export function findMockTicket(id: string): MockTicket {
+  const rows = mockTickets()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockQa = { id: string; q: string; a: string; author: string }
+export function mockQaList(): MockQa[] {
+  return [
+    { id: 'q1', q: '发什么快递？', a: '默认中通/圆通，发货后可在订单里查物流。', author: '官方' },
+    { id: 'q2', q: '支持 7 天无理由吗？', a: '非定制类支持，具体见商详售后说明。', author: '官方' }
+  ]
+}
+
+export function findMockQa(id: string): MockQa {
+  const rows = mockQaList()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockNote = { id: string; title: string; likes: string; coverHint: string }
+export function mockNotes(): MockNote[] {
+  return [
+    { id: 'n1', title: '春季保湿搭配 · 回购清单', likes: '1.2k', coverHint: '护肤' },
+    { id: 'n2', title: '小户型收纳 5 件套实测', likes: '860', coverHint: '家居' }
+  ]
+}
+
+export function findMockNote(id: string): MockNote {
+  const rows = mockNotes()
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].id === id) {
+      return rows[i]
+    }
+  }
+  return rows[0]
+}
+
+export type MockReview = { id: string; user: string; star: number; text: string; sku: string }
+export function mockReviews(): MockReview[] {
+  return [
+    { id: 'r1', user: '用**1', star: 5, text: '发货快，包装结实，会复购。', sku: '默认规格' },
+    { id: 'r2', user: 'M**K', star: 4, text: '性价比高，略有色差可接受。', sku: '默认规格' }
+  ]
+}
+
+export function mockTrackSteps(): string[] {
+  return [
+    '【上海市】包裹已发出，承运：中通 7732****2191',
+    '【杭州市】已揽收',
+    '【您的城市】运输中，预计今日送达'
+  ]
+}
+
+export function filterProductsByKw(list: MallProductBrief[], kw: string): MallProductBrief[] {
+  if (kw.length === 0) {
+    return list
+  }
+  const out: MallProductBrief[] = []
+  const lower = kw.toLowerCase()
+  for (let i = 0; i < list.length; i++) {
+    const t = list[i].title.toLowerCase()
+    if (t.indexOf(lower) >= 0) {
+      out.push(list[i])
+    }
+  }
+  return out
+}
+
+export function getBriefProduct(pid: string): MallProductBrief {
+  return getProductBrief(pid)
+}

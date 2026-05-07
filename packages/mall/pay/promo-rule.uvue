@@ -1,0 +1,43 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="h">活动规则</text>
+      <text class="p" v-for="(line, i) in lines" :key="'l' + i.toString()">{{ line }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const lines = [
+    '1. 活动时间以活动页展示为准，逾期自动失效。',
+    '2. 同一订单仅限使用一张优惠券，不可与部分促销叠加，具体以结算页为准。',
+    '3. 秒杀/拼团等特价商品可能不参与满减，请留意商详说明。',
+    '4. 如有恶意刷单、套利等行为，平台有权取消订单并收回优惠资格。',
+    '5. 规则解释权归商户所有，如有疑问请联系在线客服。'
+  ]
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.h {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+.p {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.65;
+  margin-bottom: 14px;
+}
+</style>

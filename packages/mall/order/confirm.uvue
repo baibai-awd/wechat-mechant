@@ -1,0 +1,316 @@
+<template>
+  <view class="root">
+  <scroll-view class="scroll">
+    <view class="addr" @click="goAddr">
+      <view class="addr-icon">
+        <text class="addr-icon-t">📍</text>
+      </view>
+      <view class="addr-mid">
+        <text class="addr-t1">{{ addrName }}  {{ addrPhone }}</text>
+        <text class="addr-t2">{{ addrLine }}</text>
+      </view>
+      <text class="addr-a">›</text>
+    </view>
+
+    <view class="card">
+      <text class="card-h">配送</text>
+      <view class="row">
+        <text class="row-k">方式</text>
+        <text class="row-v">快递配送 · 预计 2-4 天</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <text class="card-h">商品清单</text>
+      <view class="line" v-for="L in lines" :key="L.id + '_' + L.qty.toString()">
+        <image v-if="L.cover != null && L.cover.length > 0" class="line-thumb" :src="L.cover" mode="aspectFill" />
+        <view v-else class="line-thumb" />
+        <view class="line-m">
+          <text class="line-title">{{ L.title }}</text>
+          <view class="line-foot">
+            <text class="line-price">¥{{ L.priceYuan }}</text>
+            <text class="line-qty">×{{ L.qty }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="row">
+        <text class="row-k">商品小计</text>
+        <text class="row-v strong">¥{{ goodsStr }}</text>
+      </view>
+      <view class="row">
+        <text class="row-k">运费</text>
+        <text class="row-v">¥{{ freightStr }}</text>
+      </view>
+      <view class="row remark">
+        <text class="row-k">备注</text>
+        <text class="row-v dim">选填，请先与客服确认自定义需求</text>
+      </view>
+    </view>
+
+    <view class="pad" />
+  </scroll-view>
+
+  <view class="footer">
+    <view class="ft-l">
+      <text class="ft-a">应付</text>
+      <text class="ft-s">¥{{ totalStr }}</text>
+    </view>
+    <view class="ft-btn" @click="submit">
+      <text class="ft-bt">提交订单</text>
+    </view>
+  </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { readCartLines, sumCartYuan, formatYuan, type MallCartLine } from '@/utils/mall-cart.uts'
+  import { getProductBrief, hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { getMallUniIdToken, handleMallTokenInvalid, mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  const lines = ref<MallCartLine[]>([])
+  const goodsStr = ref('0.00')
+  const freightStr = ref('8.00')
+  const totalStr = ref('0.00')
+
+  const orderSrc = ref('buy')
+
+  const selAddressId = ref('')
+  const addrName = ref('请先登录并选择地址')
+  const addrPhone = ref('')
+  const addrLine = ref('演示：提交时写入云端 mall-order')
+
+  function recalc(): void {
+    const g = sumCartYuan(lines.value)
+    goodsStr.value = formatYuan(g)
+    const freight = parseFloat(freightStr.value)
+    const fr = isNaN(freight) ? 0 : freight
+    totalStr.value = formatYuan(g + fr)
+  }
+
+  async function loadAddresses() : Promise<void> {
+    if (!hasUniCloudMall()) {
+      selAddressId.value = ''
+      addrName.value = '张三'
+      addrPhone.value = '138****0000'
+      addrLine.value = '北京市朝阳区示例街道 88 号 · 演示地址'
+      return
+    }
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      selAddressId.value = ''
+      addrName.value = '未登录'
+      addrPhone.value = ''
+      addrLine.value = '请先登录，并在地址簿选择收货地址'
+      return
+    }
+    let pickRaw = uni.getStorageSync('mall_sel_address_id')
+    let pickId = pickRaw != null ? pickRaw as string : ''
+    if (pickId == null) {
+      pickId = ''
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.listAddresses({ token: token }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code !== 0) {
+        return
+      }
+      const arr = res['list'] as UTSJSONObject[]
+      if (arr == null || arr.length === 0) {
+        selAddressId.value = ''
+        addrName.value = '请添加收货地址'
+        addrPhone.value = ''
+        addrLine.value = '点击上方选择或新增'
+        return
+      }
+      let chosen: UTSJSONObject | null = null
+      if (pickId.length > 0) {
+        for (let i = 0; i < arr.length; i++) {
+          const row = arr[i]
+          const rid = row['id'] as string
+          if (rid === pickId) {
+            chosen = row
+            break
+          }
+        }
+      }
+      if (chosen == null) {
+        for (let i = 0; i < arr.length; i++) {
+          if (arr[i]['isDefault'] === true) {
+            chosen = arr[i]
+            break
+          }
+        }
+      }
+      if (chosen == null) {
+        chosen = arr[0]
+      }
+      const cid = chosen['id'] as string
+      selAddressId.value = cid != null ? cid : ''
+      addrName.value = chosen['name'] as string
+      addrPhone.value = chosen['phone'] as string
+      const rg = chosen['region'] as string
+      const dt = chosen['detail'] as string
+      addrLine.value = (rg != null ? rg : '') + ' ' + (dt != null ? dt : '')
+    } catch (e) {}
+  }
+
+  onLoad((options: OnLoadOptions) => {
+    const from = options['from'] as string
+    const src = options['src'] as string
+    if (src != null && src.length > 0) {
+      orderSrc.value = src
+    }
+    if (from === 'cart') {
+      orderSrc.value = 'cart'
+      lines.value = readCartLines()
+    } else {
+      let pid = 'p1'
+      const pidRaw = options['productId'] as string
+      if (pidRaw != null && pidRaw.length > 0) {
+        pid = pidRaw
+      }
+      let q = 1
+      const qRaw = options['qty'] as string
+      if (qRaw != null) {
+        const n = parseInt(qRaw)
+        if (!isNaN(n) && n > 0) {
+          q = n
+        }
+      }
+      const b = getProductBrief(pid)
+      let price = b.priceYuan
+      const flashPrice = options['flashPrice'] as string
+      if (src === 'flash' && flashPrice != null && flashPrice.length > 0) {
+        price = decodeURIComponent(flashPrice)
+      }
+      lines.value = [{ id: b.id, title: b.title, priceYuan: price, cover: b.cover, qty: q }]
+    }
+    recalc()
+  })
+
+  onShow(() => {
+    loadAddresses()
+  })
+
+  function goAddr(): void {
+    mallNavigateTo('/packages/mall/user/address-list?pick=1')
+  }
+
+  async function submit() : Promise<void> {
+    if (lines.value.length === 0) {
+      uni.showToast({ title: '暂无商品', icon: 'none' })
+      return
+    }
+    if (!hasUniCloudMall()) {
+      mallNavigateTo('/packages/mall/pay/checkout?amount=' + encodeURIComponent(totalStr.value) + '&src=' + orderSrc.value)
+      return
+    }
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      mallNavigateTo('/packages/mall/user/login')
+      return
+    }
+    if (selAddressId.value.length === 0) {
+      uni.showToast({ title: '请选择收货地址', icon: 'none' })
+      return
+    }
+    const fr = parseFloat(freightStr.value)
+    const freightCent = Math.round((isNaN(fr) ? 0 : fr) * 100)
+    try {
+      const linesParam: UTSJSONObject[] = []
+      for (let i = 0; i < lines.value.length; i++) {
+        const L = lines.value[i]
+        const o = {
+          product_id: L.id,
+          qty: L.qty
+        } as UTSJSONObject
+        if (orderSrc.value === 'flash') {
+          o['activity'] = 'flash'
+        }
+        linesParam.push(o)
+      }
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.createOrder({
+        token: token,
+        address_id: selAddressId.value,
+        lines: linesParam,
+        activity: orderSrc.value,
+        freight_cent: freightCent
+      } as UTSJSONObject) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        const ono = res['order_no'] as string
+        const ty = res['totalYuan'] as string
+        const payAmt = ty != null && ty.length > 0 ? ty : totalStr.value
+        mallNavigateTo(
+          '/packages/mall/pay/checkout?amount=' +
+            encodeURIComponent(payAmt) +
+            '&src=' +
+            orderSrc.value +
+            '&orderNo=' +
+            encodeURIComponent(ono != null ? ono : '')
+        )
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '下单失败', icon: 'none' })
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+</script>
+
+<style>
+.root { flex: 1; background-color: #f7f8fa; flex-direction: column; }
+.scroll { flex: 1; background-color: #f7f8fa; }
+.addr {
+  margin: 12px 16px;
+  padding: 15px 16px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: row;
+  align-items: center;
+}
+.addr-icon { width: 40px; height: 40px; border-radius: 8px; background-color: #ecfdf5; border-width: 1px; border-color: #bbf7d0; align-items: center; justify-content: center; }
+.addr-icon-t { font-size: 18px; color: #0f766e; }
+.addr-mid { flex: 1; margin-left: 12px; flex-direction: column; }
+.addr-t1 { font-size: 15px; font-weight: 800; color: #111827; }
+.addr-t2 { margin-top: 6px; font-size: 13px; color: #667085; line-height: 1.4; }
+.addr-a { font-size: 20px; color: #9aa4b2; }
+.card { margin: 0 16px 12px 16px; padding: 15px 16px; border-radius: 8px; background-color: #ffffff; border-width: 1px; border-color: #e6e8ec; flex-direction: column; }
+.card-h { font-size: 15px; font-weight: 800; color: #111827; margin-bottom: 12px; }
+.row { flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.row.remark { align-items: flex-start; margin-bottom: 0; }
+.row-k { font-size: 14px; color: #667085; }
+.row-v { font-size: 14px; color: #344054; max-width: 220px; text-align: right; font-weight: 600; }
+.row-v.strong { font-weight: 800; color: #0f766e; }
+.row-v.dim { font-size: 12px; color: #8a94a6; font-weight: 400; }
+.line { flex-direction: row; margin-bottom: 12px; }
+.line-thumb { width: 64px; height: 64px; border-radius: 8px; background-color: #e9edf2; }
+.line-m { flex: 1; margin-left: 12px; flex-direction: column; justify-content: space-between; }
+.line-title { font-size: 14px; font-weight: 700; color: #1f2937; line-height: 1.35; }
+.line-foot { flex-direction: row; justify-content: space-between; align-items: center; }
+.line-price { font-size: 15px; font-weight: 800; color: #0f766e; }
+.line-qty { font-size: 13px; color: #8a94a6; }
+.pad { height: 100px; }
+.footer { padding: 12px 16px; background-color: #ffffff; border-top-width: 1px; border-top-color: #e6e8ec; flex-direction: row; align-items: center; justify-content: space-between; }
+.ft-l { flex-direction: column; }
+.ft-a { font-size: 12px; color: #667085; }
+.ft-s { margin-top: 2px; font-size: 22px; font-weight: 800; color: #0f766e; }
+.ft-btn { padding: 14px 34px; border-radius: 8px; background-color: #0f766e; align-items: center; justify-content: center; }
+.ft-bt { font-size: 16px; font-weight: 800; color: #ffffff; }
+</style>

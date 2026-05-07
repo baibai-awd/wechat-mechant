@@ -1,0 +1,252 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <view class="field">
+        <text class="k">收货人</text>
+        <view class="v-wrap">
+          <text v-if="nameVal.length === 0" class="v-ph">姓名</text>
+          <input class="v" :value="nameVal" @input="onName" />
+        </view>
+      </view>
+      <view class="field">
+        <text class="k">手机号</text>
+        <view class="v-wrap">
+          <text v-if="phoneVal.length === 0" class="v-ph">11 位手机号</text>
+          <input class="v" type="text" maxlength="11" :value="phoneVal" @input="onPhone" />
+        </view>
+      </view>
+      <view class="field">
+        <text class="k">地区</text>
+        <view class="v-wrap">
+          <text v-if="regionVal.length === 0" class="v-ph">省市区</text>
+          <input class="v" :value="regionVal" @input="onRegion" />
+        </view>
+      </view>
+      <view class="field col">
+        <text class="k full">详细地址</text>
+        <view class="ta-wrap">
+          <text v-if="detailVal.length === 0" class="ta-ph">街道、门牌号</text>
+          <textarea class="ta" :value="detailVal" @input="onDetail" />
+        </view>
+      </view>
+      <view class="field">
+        <text class="k">默认</text>
+        <switch :checked="isDef" @change="onDef" />
+      </view>
+    </view>
+    <view class="btn-main" @click="save">
+      <text class="btn-main-t">保存地址</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { getMallUniIdToken, handleMallTokenInvalid, normalizePhoneInput } from '@/utils/mall-auth.uts'
+
+  const editId = ref('')
+  const nameVal = ref('')
+  const phoneVal = ref('')
+  const regionVal = ref('')
+  const detailVal = ref('')
+  const isDef = ref(false)
+
+  function onName(e : UniInputEvent) {
+    nameVal.value = e.detail.value
+  }
+  function onPhone(e : UniInputEvent) {
+    phoneVal.value = normalizePhoneInput(e.detail.value as string)
+  }
+  function onRegion(e : UniInputEvent) {
+    regionVal.value = e.detail.value
+  }
+  function onDetail(e : UniInputEvent) {
+    detailVal.value = e.detail.value
+  }
+  function onDef(e : UniSwitchChangeEvent) {
+    isDef.value = e.detail.value
+  }
+
+  async function loadCloud(id : string) : Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getAddress({ token: token, id: id }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        const ad = res['address'] as UTSJSONObject
+        if (ad != null) {
+          nameVal.value = ad['name'] as string
+          phoneVal.value = ad['phone'] as string
+          regionVal.value = ad['region'] as string
+          detailVal.value = ad['detail'] as string
+          isDef.value = ad['isDefault'] === true
+        }
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+ }
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['id'] as string
+    if (id != null && id.length > 0) {
+      editId.value = id
+      if (hasUniCloudMall()) {
+        loadCloud(id)
+      }
+    } else {
+      editId.value = ''
+    }
+  })
+
+  async function save() : Promise<void> {
+    if (!hasUniCloudMall()) {
+      uni.showToast({ title: '请配置 uniCloud', icon: 'none' })
+      return
+    }
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      let res: UTSJSONObject
+      if (editId.value.length > 0) {
+        res = await co.saveAddress({
+          token: token,
+          id: editId.value,
+          contact_name: nameVal.value.trim(),
+          phone: phoneVal.value.trim(),
+          region: regionVal.value.trim(),
+          detail: detailVal.value.trim(),
+          is_default: isDef.value
+        } as UTSJSONObject) as UTSJSONObject
+      } else {
+        res = await co.saveAddress({
+          token: token,
+          contact_name: nameVal.value.trim(),
+          phone: phoneVal.value.trim(),
+          region: regionVal.value.trim(),
+          detail: detailVal.value.trim(),
+          is_default: isDef.value
+        } as UTSJSONObject) as UTSJSONObject
+      }
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        uni.showToast({ title: '已保存', icon: 'success' })
+        setTimeout(() => {
+          uni.navigateBack({})
+        }, 400)
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '保存失败', icon: 'none' })
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+  padding: 4px 16px 16px;
+}
+.field {
+  flex-direction: row;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f2f2f7;
+}
+.field.col {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.k {
+  width: 80px;
+  font-size: 15px;
+  color: #6b7280;
+}
+.k.full {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.v-wrap {
+  flex: 1;
+  position: relative;
+  flex-direction: column;
+}
+.v-ph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 15px;
+  color: #9ca3af;
+  z-index: 0;
+  pointer-events: none;
+}
+.v {
+  flex: 1;
+  font-size: 15px;
+  color: #111827;
+  z-index: 1;
+  background-color: transparent;
+}
+.ta-wrap {
+  width: 100%;
+  position: relative;
+  flex-direction: column;
+}
+.ta-ph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 15px;
+  color: #9ca3af;
+  z-index: 0;
+  pointer-events: none;
+}
+.ta {
+  width: 100%;
+  min-height: 80px;
+  font-size: 15px;
+  color: #111827;
+}
+.btn-main {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn-main-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

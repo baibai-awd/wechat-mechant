@@ -1,0 +1,74 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="row" v-for="t in list" :key="t.id" @click="go(t.id)">
+      <view class="mid">
+        <text class="title">{{ t.title }}</text>
+        <text class="time">{{ t.time }}</text>
+      </view>
+      <text class="st">{{ t.status }}</text>
+    </view>
+    <view class="fab" @click="newTk">
+      <text class="fab-t">新建工单</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockTickets, type MockTicket } from '@/utils/mall-mock.uts'
+
+  const list = ref<MockTicket[]>(mockTickets())
+
+  function go(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/svc/ticket-detail?id=' + id })
+  }
+  function newTk() : void {
+    uni.navigateTo({ url: '/packages/mall/svc/ticket-new' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px 80px;
+}
+.row {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+  align-items: center;
+}
+.mid {
+  flex: 1;
+  flex-direction: column;
+}
+.title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.time {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.st {
+  font-size: 13px;
+  font-weight: 600;
+  color: #059669;
+}
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 28px;
+  padding: 12px 18px;
+  border-radius: 24px;
+  background-color: #059669;
+}
+.fab-t {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

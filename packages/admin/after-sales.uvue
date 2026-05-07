@@ -1,0 +1,245 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="toolbar">
+      <text class="t">售后管理</text>
+      <text class="badge" v-if="pendingCount > 0">{{ pendingCount }}</text>
+    </view>
+    <view class="tabs">
+      <view v-for="(tab, i) in tabs" :key="'tab' + i.toString()" @click="switchTab(tab.key)">
+        <text :class="curTab === tab.key ? 'tab-on' : 'tab-off'">{{ tab.label }}</text>
+      </view>
+    </view>
+    <view v-if="loading" class="loading-row">
+      <text class="loading-t">加载中...</text>
+    </view>
+    <view v-else-if="!loading && rows.length === 0" class="empty">
+      <text class="empty-t">暂无售后记录</text>
+    </view>
+    <view class="row" v-for="(r, i) in rows" :key="'r' + i.toString()">
+      <view class="row-hd">
+        <text class="id">订单 {{ r.orderId }}</text>
+        <text :class="'st st-' + r.status">{{ r.statusText }}</text>
+      </view>
+      <view class="info-row">
+        <text class="lbl">类型：</text>
+        <text class="val">{{ r.typeText }}</text>
+        <text class="lbl" style="margin-left: 16px;">金额：</text>
+        <text class="val green">¥{{ r.amount }}</text>
+      </view>
+      <view class="info-row">
+        <text class="lbl">原因：</text>
+        <text class="val">{{ r.reason }}</text>
+      </view>
+      <view class="info-row" v-if="r.desc.length > 0">
+        <text class="lbl">说明：</text>
+        <text class="val desc">{{ r.desc }}</text>
+      </view>
+      <view class="info-row" v-if="r.reply.length > 0">
+        <text class="lbl">回复：</text>
+        <text class="val reply">{{ r.reply }}</text>
+      </view>
+      <view class="img-row" v-if="r.images.length > 0">
+        <image v-for="(img, j) in r.images" :key="'img' + j.toString()" class="img-thumb" :src="img" mode="aspectFill" @click="previewImg(j, r.images)" />
+      </view>
+      <view class="row-ft">
+        <text class="tm">{{ r.createdAt }}</text>
+      </view>
+      <view class="action-row" v-if="r.status === 'open' || r.status === 'processing'">
+        <view class="btn-approve" @click="onAction(r, 'approve')">
+          <text class="btn-approve-t">通过</text>
+        </view>
+        <view class="btn-reject" @click="onAction(r, 'reject')">
+          <text class="btn-reject-t">拒绝</text>
+        </view>
+        <view class="btn-close" @click="onAction(r, 'close')">
+          <text class="btn-close-t">关闭</text>
+        </view>
+      </view>
+      <view class="action-row" v-if="r.status === 'approved' || r.status === 'rejected'">
+        <view class="btn-close" @click="onAction(r, 'close')">
+          <text class="btn-close-t">关闭</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  type AfterSalesItem = {
+    _id: string
+    orderId: string
+    type: number
+    typeText: string
+    reason: string
+    amount: string
+    desc: string
+    images: string[]
+    status: string
+    statusText: string
+    createdAt: string
+    updatedAt: string
+    reply: string
+  }
+
+  const tabs = [
+    { key: '', label: '全部' },
+    { key: 'open', label: '待处理' },
+    { key: 'processing', label: '处理中' },
+    { key: 'approved', label: '已通过' },
+    { key: 'rejected', label: '已拒绝' },
+    { key: 'closed', label: '已关闭' }
+  ]
+
+  const curTab = ref('')
+  const rows = ref<AfterSalesItem[]>([])
+  const loading = ref(false)
+  const pendingCount = ref(0)
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+    }
+  })
+
+  onShow(() => {
+    loadList()
+  })
+
+  function switchTab(key: string): void {
+    curTab.value = key
+    loadList()
+  }
+
+  async function loadList(): Promise<void> {
+    loading.value = true
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.getAfterSalesList({ token, status: curTab.value, limit: 50 }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        const out: AfterSalesItem[] = []
+        let pending = 0
+        for (let i = 0; i < arr.length; i++) {
+          const o = arr[i]
+          out.push({
+            _id: (o['_id'] as string) || '',
+            orderId: (o['orderId'] as string) || '',
+            type: typeof o['type'] === 'number' ? (o['type'] as number) : 0,
+            typeText: (o['typeText'] as string) || '',
+            reason: (o['reason'] as string) || '',
+            amount: (o['amount'] as string) || '0',
+            desc: (o['desc'] as string) || '',
+            images: (o['images'] as string[]) || [],
+            status: (o['status'] as string) || 'open',
+            statusText: (o['statusText'] as string) || '',
+            createdAt: (o['createdAt'] as string) || '',
+            updatedAt: (o['updatedAt'] as string) || '',
+            reply: (o['reply'] as string) || ''
+          })
+          if ((o['status'] as string) === 'open' || (o['status'] as string) === 'processing') {
+            pending++
+          }
+        }
+        rows.value = out
+        pendingCount.value = pending
+      } else {
+        rows.value = []
+      }
+    } catch (e) {
+      rows.value = []
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function onAction(r: AfterSalesItem, action: string): void {
+    const actionText = action === 'approve' ? '通过' : action === 'reject' ? '拒绝' : '关闭'
+    const contentMap: UTSObject = {
+      approve: '确定要通过此售后申请吗？通过后款项将原路退回。',
+      reject: '确定要拒绝此售后申请吗？',
+      close: '确定要关闭此售后单吗？关闭后用户将无法继续申诉。'
+    }
+    uni.showModal({
+      title: actionText + '售后',
+      content: contentMap[action] as string,
+      showCancel: true,
+      success: (res) => {
+        if (res != null && res['confirm'] === true) {
+          runAction(r, action)
+        }
+      }
+    })
+  }
+
+  async function runAction(r: AfterSalesItem, action: string): Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.handleAfterSales({
+        token,
+        ticket_id: r._id,
+        action,
+        reply: ''
+      }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        uni.showToast({ title: '处理成功', icon: 'success' })
+        loadList()
+      } else {
+        uni.showToast({ title: (res['errMsg'] as string) || '处理失败', icon: 'none' })
+      }
+    } catch (e) {
+      uni.showToast({ title: '网络错误', icon: 'none' })
+    }
+  }
+
+  function previewImg(i: number, images: string[]): void {
+    if (images == null || images.length === 0) return
+    uni.previewImage({ urls: images, current: i.toString() })
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 18px 14px 36px; box-sizing: border-box; }
+.toolbar { height: 40px; display: flex; flex-direction: row; align-items: center; }
+.t { font-size: 22px; line-height: 30px; font-weight: 700; color: #111827; }
+.badge { min-width: 22px; height: 22px; margin-left: 8px; padding: 0 6px; border-radius: 8px; background-color: #be123c; color: #ffffff; text-align: center; font-size: 12px; line-height: 22px; font-weight: 700; box-sizing: border-box; }
+.tabs { margin-top: 12px; margin-bottom: 12px; padding: 4px; background-color: #eef2f7; border-radius: 8px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.tab-on, .tab-off { min-width: 58px; height: 34px; padding: 0 10px; border-radius: 7px; text-align: center; font-size: 13px; line-height: 34px; box-sizing: border-box; }
+.tab-on { background-color: #ffffff; color: #0f766e; font-weight: 700; }
+.tab-off { color: #64748b; font-weight: 600; }
+.loading-row, .empty { padding: 36px 0; display: flex; align-items: center; justify-content: center; }
+.loading-t, .empty-t { font-size: 14px; line-height: 20px; color: #94a3b8; }
+.row { margin-bottom: 10px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.row-hd, .row-ft, .info-row, .action-row, .img-row { display: flex; flex-direction: row; align-items: center; }
+.row-hd { justify-content: space-between; margin-bottom: 10px; }
+.id { font-size: 13px; line-height: 18px; font-weight: 700; color: #1f2937; }
+.info-row { margin-top: 6px; flex-wrap: wrap; }
+.lbl { font-size: 13px; line-height: 19px; color: #64748b; }
+.val { font-size: 13px; line-height: 19px; color: #1f2937; font-weight: 600; }
+.green { color: #0f766e; }
+.desc { max-width: 250px; }
+.reply { color: #0f766e; }
+.img-row { margin-top: 10px; flex-wrap: wrap; }
+.img-thumb { width: 58px; height: 58px; margin-right: 8px; margin-bottom: 8px; border-radius: 8px; background-color: #eef2f7; }
+.row-ft { margin-top: 8px; justify-content: space-between; }
+.tm { font-size: 12px; line-height: 17px; color: #94a3b8; }
+.action-row { margin-top: 12px; justify-content: flex-end; }
+.btn-approve, .btn-reject, .btn-close { min-width: 66px; height: 34px; margin-left: 8px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.btn-approve { background-color: #0f766e; }
+.btn-reject { background-color: #fff1f2; border: 1px solid #fecdd3; }
+.btn-close { background-color: #f1f5f9; }
+.btn-approve-t, .btn-reject-t, .btn-close-t { font-size: 13px; line-height: 18px; font-weight: 700; }
+.btn-approve-t { color: #ffffff; }
+.btn-reject-t { color: #be123c; }
+.btn-close-t { color: #475569; }
+.st { padding: 3px 8px; border-radius: 8px; font-size: 12px; line-height: 16px; font-weight: 700; }
+.st-open { background-color: #fffbeb; color: #d97706; }
+.st-processing { background-color: #eff6ff; color: #2563eb; }
+.st-approved { background-color: #ecfdf5; color: #059669; }
+.st-rejected { background-color: #fff1f2; color: #be123c; }
+.st-closed { background-color: #f1f5f9; color: #64748b; }
+</style>

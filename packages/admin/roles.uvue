@@ -1,0 +1,32 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card" v-for="(r, i) in roles" :key="'r' + i.toString()">
+      <text class="name">{{ r.name }}</text>
+      <text class="perm">{{ r.perm }}</text>
+    </view>
+    <text class="hint">演示 RBAC · 接 uni-id / 自研权限后可配置</text>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+    }
+  })
+
+  const roles = [
+    { name: '店主', perm: '全部模块 · 财务 · 员工' },
+    { name: '运营', perm: '商品 · 订单 · 营销 · 内容' },
+    { name: '客服', perm: '订单查看 · 售后工单 · 聊天' }
+  ]
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 16px 14px 36px; box-sizing: border-box; }
+.card { margin-bottom: 10px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.name { display: block; font-size: 16px; line-height: 23px; font-weight: 700; color: #111827; }
+.perm { display: block; margin-top: 8px; font-size: 13px; line-height: 19px; color: #64748b; }
+.hint { display: block; margin-top: 14px; text-align: center; font-size: 12px; line-height: 18px; color: #94a3b8; }
+</style>

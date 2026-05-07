@@ -1,0 +1,59 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="intro">以下为附近自提点（演示数据），下单时可选自提并凭码取货。</text>
+    <view class="card" v-for="(p, i) in points" :key="'p' + i.toString()" @click="pick(i)">
+      <text class="name">{{ p.name }}</text>
+      <text class="addr">{{ p.addr }}</text>
+      <text class="time">营业时间 {{ p.time }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  const points = [
+    { name: '朝阳驿站 A', addr: '朝阳区建国路 100 号一层服务台', time: '9:00-21:00' },
+    { name: '浦东提货点 B', addr: '浦东新区世纪大道 88 号 B1', time: '10:00-20:00' },
+    { name: '城西便民仓 C', addr: '西湖区文三路 200 号', time: '8:00-22:00' }
+  ]
+
+  function pick(i : number) : void {
+    uni.showToast({ title: '已选：' + points[i].name, icon: 'none' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.intro {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.addr {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+.time {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+}
+</style>

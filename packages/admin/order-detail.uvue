@@ -1,0 +1,234 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view v-if="!loaded" class="loading-row">
+      <text class="loading-t">加载中...</text>
+    </view>
+    <template v-if="loaded && order != null">
+      <text class="h">订单详情</text>
+      <view class="card">
+        <view class="row-1">
+          <text class="label">订单编号</text>
+          <text class="val">{{ order.order_no }}</text>
+        </view>
+        <view class="row-1">
+          <text class="label">订单状态</text>
+          <text :class="statusClass(order.status)">{{ order.statusText }}</text>
+        </view>
+        <view class="row-1">
+          <text class="label">下单时间</text>
+          <text class="val">{{ order.time }}</text>
+        </view>
+      </view>
+
+      <text class="h2">收货信息</text>
+      <view class="card">
+        <view class="row-1">
+          <text class="label">收货人</text>
+          <text class="val">{{ order.contactName || '-' }}</text>
+        </view>
+        <view class="row-1">
+          <text class="label">联系电话</text>
+          <text class="val">{{ order.phone || '-' }}</text>
+        </view>
+        <view class="row-1">
+          <text class="label">收货地址</text>
+          <text class="val">{{ order.addrLine || '-' }}</text>
+        </view>
+      </view>
+
+      <text class="h2">商品信息</text>
+      <view class="card goods-card" v-for="(item, i) in order.items" :key="'g' + i.toString()">
+        <text class="goods-title">{{ item.title }}</text>
+        <view class="goods-row">
+          <text class="goods-p">¥{{ centToYuan(item.price_cent) }}</text>
+          <text class="goods-q">x{{ item.qty }}</text>
+        </view>
+      </view>
+
+      <view class="card total-card">
+        <view class="row-1">
+          <text class="label">商品金额</text>
+          <text class="val">¥{{ order.totalYuan }}</text>
+        </view>
+        <view class="row-1" v-if="order.freightYuan">
+          <text class="label">运费</text>
+          <text class="val">¥{{ order.freightYuan }}</text>
+        </view>
+        <view class="row-1">
+          <text class="label-total">合计</text>
+          <text class="val-total">¥{{ order.totalYuan }}</text>
+        </view>
+      </view>
+
+      <view v-if="order.logistics" class="card">
+        <text class="h2">物流信息</text>
+        <view class="row-1">
+          <text class="label">快递公司</text>
+          <text class="val">{{ order.logistics.company || '-' }}</text>
+        </view>
+        <view class="row-1">
+          <text class="label">运单号</text>
+          <text class="val">{{ order.logistics.tracking_no || '-' }}</text>
+        </view>
+      </view>
+
+      <view v-if="order.status === 'paid'" class="action-area">
+        <view class="btn-ship" @click="showShipModal">
+          <text class="btn-ship-t">确认发货</text>
+        </view>
+      </view>
+    </template>
+    <view v-if="loaded && order == null" class="empty">
+      <text class="empty-t">订单不存在</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  type OrderData = {
+    order_no: string
+    status: string
+    statusText: string
+    totalYuan: string
+    freightYuan: string
+    time: string
+    phone: string
+    addrLine: string
+    contactName: string
+    items: Array<{ title: string; price_cent: number; qty: number; cover: string }>
+    logistics: { company: string; tracking_no: string } | null
+  } | null
+
+  const order = ref<OrderData>(null)
+  const loaded = ref(false)
+
+  onLoad((options: OnLoadOptions) => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+      return
+    }
+    const order_no = options['order_no'] as string
+    if (order_no) {
+      loadOrder(order_no)
+    } else {
+      loaded.value = true
+    }
+  })
+
+  async function loadOrder(order_no: string): Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.getOrderByNo({ token, order_no }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const o = res['order'] as UTSJSONObject
+        if (o) {
+          order.value = {
+            order_no: (o['order_no'] as string) || '',
+            status: (o['status'] as string) || '',
+            statusText: (o['statusText'] as string) || '',
+            totalYuan: (o['totalYuan'] as string) || '0.00',
+            freightYuan: (o['freightYuan'] as string) || '',
+            time: (o['time'] as string) || '',
+            phone: (o['phone'] as string) || '',
+            addrLine: (o['addrLine'] as string) || '',
+            contactName: (o['contactName'] as string) || '',
+            items: (o['items'] as Array<{ title: string; price_cent: number; qty: number; cover: string }>) || [],
+            logistics: (o['logistics'] as { company: string; tracking_no: string } | null) || null
+          }
+        }
+      }
+    } catch (e) {
+      order.value = null
+    } finally {
+      loaded.value = true
+    }
+  }
+
+  function centToYuan(cent: number): string {
+    return (cent / 100).toFixed(2)
+  }
+
+  function statusClass(status: string): string {
+    if (status === 'paid') return 'st-paid'
+    if (status === 'shipped') return 'st-shipped'
+    if (status === 'received') return 'st-done'
+    if (status === 'closed') return 'st-closed'
+    return 'st-default'
+  }
+
+  function showShipModal(): void {
+    uni.showModal({
+      title: '确认发货',
+      editable: true,
+      placeholderText: '请输入快递公司名称',
+      success: async (res) => {
+        if (!res.confirm || !res.content) {
+          if (res.confirm) uni.showToast({ title: '请输入快递公司', icon: 'none' })
+          return
+        }
+        const company = res.content.trim()
+        let trackingNo = ''
+        uni.showModal({
+          title: '运单号',
+          editable: true,
+          placeholderText: '请输入运单号（选填）',
+          success: async (res2) => {
+            if (res2.confirm) trackingNo = res2.content || ''
+            await doShip(order.value!.order_no, company, trackingNo)
+          }
+        })
+      }
+    })
+  }
+
+  async function doShip(order_no: string, company: string, trackingNo: string): Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const r = await co.shipOrder({ token, order_no, logistics_company: company, tracking_no: trackingNo }) as UTSJSONObject
+      if (r['errCode'] != null && (r['errCode'] as number) === 0) {
+        uni.showToast({ title: '发货成功', icon: 'success' })
+        loadOrder(order_no)
+      } else {
+        uni.showToast({ title: (r['errMsg'] as string) || '发货失败', icon: 'none' })
+      }
+    } catch (e) {
+      uni.showToast({ title: '网络错误', icon: 'none' })
+    }
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 18px 14px 36px; box-sizing: border-box; }
+.loading-row, .empty { padding: 40px 0; display: flex; align-items: center; justify-content: center; }
+.loading-t, .empty-t { font-size: 14px; line-height: 20px; color: #94a3b8; }
+.h { display: block; margin-bottom: 14px; font-size: 24px; line-height: 32px; font-weight: 700; color: #111827; }
+.h2 { display: block; margin: 18px 0 10px; font-size: 16px; line-height: 23px; font-weight: 700; color: #111827; }
+.card { margin-bottom: 10px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.row-1 { min-height: 34px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; border-bottom: 1px solid #f1f3f5; }
+.row-1:last-child { border-bottom-width: 0; }
+.label, .val, .label-total, .val-total { font-size: 14px; line-height: 20px; }
+.label { color: #64748b; }
+.val { max-width: 220px; text-align: right; color: #1f2937; font-weight: 600; }
+.goods-card { padding: 14px; }
+.goods-title { display: block; font-size: 15px; line-height: 21px; font-weight: 700; color: #111827; }
+.goods-row { margin-top: 8px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+.goods-p { font-size: 15px; line-height: 21px; font-weight: 700; color: #0f766e; }
+.goods-q { font-size: 13px; line-height: 18px; color: #64748b; }
+.total-card { background-color: #f8fafc; }
+.label-total { color: #111827; font-weight: 700; }
+.val-total { color: #0f766e; font-size: 18px; line-height: 24px; font-weight: 700; }
+.action-area { margin-top: 18px; }
+.btn-ship { height: 46px; border-radius: 8px; background-color: #0f766e; display: flex; align-items: center; justify-content: center; }
+.btn-ship-t { font-size: 15px; line-height: 21px; font-weight: 700; color: #ffffff; }
+.st-paid, .st-shipped, .st-done, .st-closed, .st-default { padding: 3px 8px; border-radius: 8px; font-size: 12px; line-height: 16px; font-weight: 700; }
+.st-paid { background-color: #fffbeb; color: #d97706; }
+.st-shipped { background-color: #eff6ff; color: #2563eb; }
+.st-done { background-color: #ecfdf5; color: #059669; }
+.st-closed { background-color: #f1f5f9; color: #64748b; }
+.st-default { background-color: #f8fafc; color: #64748b; }
+</style>

@@ -1,0 +1,80 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="amt">¥{{ row.amount }}</text>
+      <text class="st">支付成功</text>
+      <view class="line">
+        <text class="k">流水号</text>
+        <text class="v">{{ row.id }}</text>
+      </view>
+      <view class="line">
+        <text class="k">说明</text>
+        <text class="v">{{ row.title }}</text>
+      </view>
+      <view class="line">
+        <text class="k">时间</text>
+        <text class="v">{{ row.time }}</text>
+      </view>
+      <view class="line">
+        <text class="k">方式</text>
+        <text class="v">{{ row.payMethod }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { findMockBill, type MockBill } from '@/utils/mall-mock.uts'
+
+  const row = ref<MockBill>(findMockBill(''))
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['id'] as string
+    if (id != null && id.length > 0) {
+      row.value = findMockBill(id)
+    }
+  })
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  padding: 24px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+  align-items: center;
+}
+.amt {
+  font-size: 36px;
+  font-weight: 800;
+  color: #059669;
+}
+.st {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+}
+.line {
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top-width: 1px;
+  border-top-color: #f2f2f7;
+}
+.k {
+  font-size: 14px;
+  color: #9ca3af;
+}
+.v {
+  font-size: 14px;
+  color: #374151;
+  max-width: 220px;
+  text-align: right;
+}
+</style>

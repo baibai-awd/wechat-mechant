@@ -1,0 +1,176 @@
+<template>
+  <scroll-view class="scroll">
+    <view class="header">
+      <view class="avatar" @click="onHeaderUserTap">
+        <text class="avatar-txt">{{ avatarChar }}</text>
+      </view>
+      <view class="header-mid">
+        <text class="nickname" @click="onHeaderUserTap">{{ loginLabel }}</text>
+        <text class="sub">积分 · 会员 · 优惠券</text>
+      </view>
+      <text class="header-link" @click="goProfile">编辑</text>
+    </view>
+
+    <view class="order-card">
+      <view class="order-title-row">
+        <text class="order-title">我的订单</text>
+        <text class="order-all" @click="goOrders">全部 ›</text>
+      </view>
+      <view class="order-grid">
+        <view class="order-item" @click="goOrders">
+          <text class="order-item-t">待付款</text>
+        </view>
+        <view class="order-item" @click="goOrders">
+          <text class="order-item-t">待发货</text>
+        </view>
+        <view class="order-item" @click="goOrders">
+          <text class="order-item-t">待收货</text>
+        </view>
+        <view class="order-item" @click="goAfterSales">
+          <text class="order-item-t">售后</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="menu">
+      <view class="menu-row" @click="go('/packages/mall/user/address-list')">
+        <text class="menu-t">收货地址</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="go('/packages/mall/pay/coupons')">
+        <text class="menu-t">优惠券</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="go('/packages/mall/user/member')">
+        <text class="menu-t">会员中心</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="go('/packages/mall/user/security')">
+        <text class="menu-t">账户安全</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="go('/packages/mall/svc/chat')">
+        <text class="menu-t">在线客服</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="go('/packages/mall/svc/help')">
+        <text class="menu-t">帮助中心</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="go('/packages/admin/dashboard')">
+        <text class="menu-t">商家工作台</text>
+        <text class="menu-a">›</text>
+      </view>
+      <view class="menu-row" @click="goDemo">
+        <text class="menu-t">官方组件 / API 演示</text>
+        <text class="menu-a">›</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+
+<script setup lang="uts">
+  import { getMallUserLabel, getMallUniIdToken, mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  const loginLabel = ref('点击登录')
+
+  onShow(() => {
+    const lab = getMallUserLabel()
+    if (lab.length > 0) {
+      loginLabel.value = lab
+    } else {
+      loginLabel.value = '点击登录'
+    }
+  })
+
+  const avatarChar = computed((): string => {
+    const s = loginLabel.value
+    if (s.length > 0) {
+      return s.substring(0, 1)
+    }
+    return '?'
+  })
+
+  function go(url: string): void {
+    if (url.startsWith('/packages/mall')) {
+      mallNavigateTo(url)
+      return
+    }
+    uni.navigateTo({ url: url })
+  }
+
+  /** 未登录去登录；已登录进资料（头像/昵称不再误跳进登录页） */
+  function onHeaderUserTap(): void {
+    if (getMallUniIdToken().length > 0) {
+      goProfile()
+      return
+    }
+    mallNavigateTo('/packages/mall/user/login')
+  }
+
+  function goProfile(): void {
+    mallNavigateTo('/packages/mall/user/profile')
+  }
+
+  function goOrders(): void {
+    if (getMallUniIdToken().length === 0) {
+      mallNavigateTo('/packages/mall/user/login')
+      return
+    }
+    mallNavigateTo('/packages/mall/order/order-list')
+  }
+
+  function goAfterSales(): void {
+    if (getMallUniIdToken().length === 0) {
+      mallNavigateTo('/packages/mall/user/login')
+      return
+    }
+    mallNavigateTo('/packages/mall/pay/after-sales-list')
+  }
+
+  function goDemo(): void {
+    uni.navigateTo({ url: '/pages/tabBar/tab-bar' })
+  }
+</script>
+
+<style>
+.scroll { flex: 1; background-color: #f7f8fa; }
+.header {
+  padding: 24px 16px 28px 16px;
+  flex-direction: row;
+  align-items: center;
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 72%, #f59e0b 130%);
+}
+.avatar { width: 56px; height: 56px; border-radius: 28px; background-color: #ffffff; align-items: center; justify-content: center; }
+.avatar-txt { font-size: 22px; font-weight: 800; color: #0f766e; }
+.header-mid { flex: 1; margin-left: 14px; flex-direction: column; }
+.nickname { font-size: 19px; font-weight: 800; color: #ffffff; }
+.sub { margin-top: 5px; font-size: 12px; color: rgba(255, 255, 255, 0.88); }
+.header-link { font-size: 14px; color: #ffffff; font-weight: 700; }
+.order-card {
+  margin: -14px 16px 12px 16px;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: column;
+}
+.order-title-row { flex-direction: row; justify-content: space-between; align-items: center; }
+.order-title { font-size: 16px; font-weight: 800; color: #111827; }
+.order-all { font-size: 13px; color: #0f766e; font-weight: 700; }
+.order-grid { margin-top: 15px; flex-direction: row; justify-content: space-between; }
+.order-item { flex: 1; align-items: center; padding: 8px 0; }
+.order-item-t { font-size: 13px; color: #344054; font-weight: 600; }
+.menu {
+  margin: 0 16px 32px 16px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: column;
+}
+.menu-row { padding: 15px 16px; flex-direction: row; align-items: center; justify-content: space-between; border-bottom-width: 1px; border-bottom-color: #f1f5f9; }
+.menu-t { font-size: 15px; color: #1f2937; font-weight: 600; }
+.menu-a { font-size: 18px; color: #9aa4b2; }
+</style>

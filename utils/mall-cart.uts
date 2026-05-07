@@ -1,0 +1,116 @@
+/** 本地购物车（演示用，可后续接云对象） */
+
+export type MallCartLine = {
+  id: string
+  title: string
+  priceYuan: string
+  cover: string
+  qty: number
+}
+
+const KEY = 'mall_cart_v1'
+
+function lineFromJo(o: UTSJSONObject): MallCartLine | null {
+  const id = o.get('id') as string
+  const title = o.get('title') as string
+  const priceYuan = o.get('priceYuan') as string
+  const cover = o.get('cover') as string
+  const qty = o.get('qty') as number
+  if (id != null && title != null && priceYuan != null && qty != null && qty > 0) {
+    return { id: id, title: title, priceYuan: priceYuan, cover: cover != null ? cover : '', qty: qty }
+  }
+  return null
+}
+
+export function readCartLines(): MallCartLine[] {
+  const raw = uni.getStorageSync(KEY)
+  if (raw == null) {
+    return []
+  }
+  if (!Array.isArray(raw)) {
+    return []
+  }
+  const dataSync = raw as UTSJSONObject[]
+  if (dataSync.length === 0) {
+    return []
+  }
+  const out: MallCartLine[] = []
+  for (let i = 0; i < dataSync.length; i++) {
+    const L = lineFromJo(dataSync[i])
+    if (L != null) {
+      out.push(L)
+    }
+  }
+  return out
+}
+
+export function writeCartLines(lines: MallCartLine[]): void {
+  const arr: UTSJSONObject[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const L = lines[i]
+    const o = {
+      id: L.id,
+      title: L.title,
+      priceYuan: L.priceYuan,
+      cover: L.cover,
+      qty: L.qty
+    } as UTSJSONObject
+    arr.push(o)
+  }
+  uni.setStorageSync(KEY, arr)
+}
+
+export function addOrIncLine(line: MallCartLine): void {
+  const cur = readCartLines()
+  let done = false
+  for (let i = 0; i < cur.length; i++) {
+    if (cur[i].id === line.id) {
+      cur[i].qty = cur[i].qty + line.qty
+      done = true
+      break
+    }
+  }
+  if (!done) {
+    cur.push(line)
+  }
+  writeCartLines(cur)
+}
+
+export function updateLineQty(id: string, qty: number): void {
+  let cur = readCartLines()
+  if (qty <= 0) {
+    const next: MallCartLine[] = []
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i].id !== id) {
+        next.push(cur[i])
+      }
+    }
+    cur = next
+  } else {
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i].id === id) {
+        cur[i].qty = qty
+        break
+      }
+    }
+  }
+  writeCartLines(cur)
+}
+
+export function clearCart(): void {
+  uni.setStorageSync(KEY, [] as UTSJSONObject[])
+}
+
+export function sumCartYuan(lines: MallCartLine[]): number {
+  let t = 0.0
+  for (let i = 0; i < lines.length; i++) {
+    const p = parseFloat(lines[i].priceYuan)
+    const q = lines[i].qty as number
+    t = t + p * q
+  }
+  return t
+}
+
+export function formatYuan(n: number): string {
+  return n.toFixed(2)
+}

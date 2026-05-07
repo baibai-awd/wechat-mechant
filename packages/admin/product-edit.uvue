@@ -1,0 +1,202 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="lab">商品名称</text>
+      <input class="inp" placeholder="请输入商品名称" :value="title" @input="onT" />
+    </view>
+    <view class="card">
+      <text class="lab">副标题</text>
+      <input class="inp" placeholder="选填" :value="subtitle" @input="onST" />
+    </view>
+    <view class="card">
+      <text class="lab">售价（元）</text>
+      <input class="inp" type="digit" placeholder="0.00" :value="price" @input="onP" />
+    </view>
+    <view class="card">
+      <text class="lab">划线价（元）</text>
+      <input class="inp" type="digit" placeholder="选填" :value="marketPrice" @input="onMP" />
+    </view>
+    <view class="card">
+      <text class="lab">库存</text>
+      <input class="inp" type="number" placeholder="0" :value="stock" @input="onS" />
+    </view>
+    <view class="card">
+      <text class="lab">封面图 URL</text>
+      <input class="inp" placeholder="选填，填入图片链接" :value="cover" @input="onC" />
+    </view>
+    <view class="card">
+      <text class="lab">标签</text>
+      <input class="inp" placeholder="如：热卖、新品（选填）" :value="tag" @input="onTG" />
+    </view>
+    <view class="card">
+      <text class="lab">上下架状态</text>
+      <view class="status-row">
+        <view :class="status === 'on_sale' ? 'st-on' : 'st-off'" @click="status = 'on_sale'">
+          <text :class="status === 'on_sale' ? 'st-on-t' : 'st-off-t'">上架</text>
+        </view>
+        <view :class="status === 'off' ? 'st-on' : 'st-off'" style="margin-left: 12px;" @click="status = 'off'">
+          <text :class="status === 'off' ? 'st-on-t' : 'st-off-t'">下架</text>
+        </view>
+      </view>
+    </view>
+    <view class="btn" @click="save">
+      <text class="btn-t">{{ saving ? '保存中...' : '保存' }}</text>
+    </view>
+    <view v-if="editId.length > 0" class="del-btn" @click="del">
+      <text class="del-btn-t">删除商品</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  const editId = ref('')
+  const title = ref('')
+  const subtitle = ref('')
+  const price = ref('99.00')
+  const marketPrice = ref('')
+  const stock = ref('100')
+  const cover = ref('')
+  const tag = ref('')
+  const status = ref<'on_sale' | 'off'>('on_sale')
+  const saving = ref(false)
+
+  onLoad((options : OnLoadOptions) => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+      return
+    }
+    const id = options['id'] as string
+    if (id != null && id.length > 0) {
+      editId.value = id
+      loadProduct()
+    }
+  })
+
+  async function loadProduct() : Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.getProductById({ token, id: editId.value }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const p = res['product'] as UTSJSONObject
+        if (p != null) {
+          title.value = (p['title'] as string) || ''
+          subtitle.value = (p['subtitle'] as string) || ''
+          price.value = (p['priceYuan'] as string) || '99.00'
+          marketPrice.value = (p['marketPriceYuan'] as string) || ''
+          const st = p['stock'] as number
+          stock.value = st != null ? st.toString() : '0'
+          cover.value = (p['cover'] as string) || ''
+          tag.value = (p['tag'] as string) || ''
+          const s = p['status'] as string
+          status.value = s === 'off' ? 'off' : 'on_sale'
+        }
+      }
+    } catch (e) {}
+  }
+
+  function onT(e : UniInputEvent) { title.value = e.detail.value }
+  function onST(e : UniInputEvent) { subtitle.value = e.detail.value }
+  function onP(e : UniInputEvent) { price.value = e.detail.value }
+  function onMP(e : UniInputEvent) { marketPrice.value = e.detail.value }
+  function onS(e : UniInputEvent) { stock.value = e.detail.value }
+  function onC(e : UniInputEvent) { cover.value = e.detail.value }
+  function onTG(e : UniInputEvent) { tag.value = e.detail.value }
+
+  async function save() : Promise<void> {
+    if (saving.value) return
+    const t = title.value.trim()
+    if (!t) {
+      uni.showToast({ title: '请填写商品名称', icon: 'none' })
+      return
+    }
+    saving.value = true
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      let res
+      if (editId.value.length > 0) {
+        res = await co.updateProduct({
+          token,
+          id: editId.value,
+          title: t,
+          subtitle: subtitle.value,
+          priceYuan: price.value,
+          marketPriceYuan: marketPrice.value,
+          stock: stock.value,
+          cover: cover.value,
+          tag: tag.value,
+          status: status.value
+        }) as UTSJSONObject
+      } else {
+        res = await co.createProduct({
+          token,
+          title: t,
+          subtitle: subtitle.value,
+          priceYuan: price.value,
+          marketPriceYuan: marketPrice.value,
+          stock: stock.value,
+          cover: cover.value,
+          tag: tag.value,
+          status: status.value
+        }) as UTSJSONObject
+      }
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        uni.showToast({ title: '保存成功', icon: 'success' })
+        setTimeout(() => { uni.navigateBack({}) }, 400)
+      } else {
+        uni.showToast({ title: (res['errMsg'] as string) || '保存失败', icon: 'none' })
+      }
+    } catch (e) {
+      uni.showToast({ title: '网络错误', icon: 'none' })
+    } finally {
+      saving.value = false
+    }
+  }
+
+  async function del() : Promise<void> {
+    if (editId.value.length === 0) return
+    uni.showModal({
+      title: '确认删除',
+      content: '确定要删除该商品吗？删除后可在商品列表重新上架。',
+      success: async (res) => {
+        if (!res.confirm) return
+        const token = getAdminToken()
+        try {
+          // @ts-ignore
+          const co = uniCloud.importObject('admin-co')
+          const r = await co.deleteProduct({ token, id: editId.value }) as UTSJSONObject
+          if (r['errCode'] != null && (r['errCode'] as number) === 0) {
+            uni.showToast({ title: '已删除', icon: 'success' })
+            setTimeout(() => { uni.navigateBack({}) }, 400)
+          } else {
+            uni.showToast({ title: (r['errMsg'] as string) || '删除失败', icon: 'none' })
+          }
+        } catch (e) {
+          uni.showToast({ title: '网络错误', icon: 'none' })
+        }
+      }
+    })
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 16px 14px 36px; box-sizing: border-box; }
+.card { margin-bottom: 10px; padding: 13px 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.lab { display: block; margin-bottom: 8px; font-size: 13px; line-height: 18px; font-weight: 700; color: #475569; }
+.inp { height: 38px; font-size: 15px; line-height: 38px; color: #111827; }
+.status-row { display: flex; flex-direction: row; align-items: center; }
+.st-on, .st-off { min-width: 76px; height: 36px; padding: 0 14px; border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.st-on { background-color: #0f766e; border: 1px solid #0f766e; }
+.st-off { background-color: #ffffff; border: 1px solid #d7dde5; }
+.st-on-t, .st-off-t { font-size: 14px; line-height: 20px; font-weight: 700; }
+.st-on-t { color: #ffffff; }
+.st-off-t { color: #64748b; }
+.btn { height: 48px; margin-top: 16px; border-radius: 8px; background-color: #0f766e; display: flex; align-items: center; justify-content: center; }
+.btn-t { font-size: 16px; line-height: 22px; font-weight: 700; color: #ffffff; }
+.del-btn { height: 46px; margin-top: 12px; border-radius: 8px; background-color: #fff1f2; border: 1px solid #fecdd3; display: flex; align-items: center; justify-content: center; }
+.del-btn-t { font-size: 15px; line-height: 21px; font-weight: 700; color: #be123c; }
+</style>

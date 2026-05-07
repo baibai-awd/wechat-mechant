@@ -1,0 +1,61 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="h">用户分析</text>
+    <view class="grid">
+      <view class="cell" v-for="(m, i) in metrics" :key="'m' + i.toString()">
+        <text class="mv">{{ m.v }}</text>
+        <text class="ml">{{ m.l }}</text>
+      </view>
+    </view>
+    <view class="card">
+      <text class="ch">人群画像（演示）</text>
+      <text class="line">· 新客占比 32%，复购率 18%</text>
+      <text class="line">· Top 城市：北京、上海、杭州</text>
+      <text class="line">· 客单价集中区间 ¥80–¥200</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  type MetricCell = { v: string; l: string }
+
+  const metrics = ref<MetricCell[]>([
+    { v: '-', l: '总用户数' },
+    { v: '3.2', l: '人均启动次数' },
+    { v: '04:12', l: '人均使用时长' }
+  ])
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+      return
+    }
+    loadData()
+  })
+
+  async function loadData(): Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.getUserStats({ token }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        const s = res['stats'] as UTSJSONObject
+        metrics.value[0].v = String((s['total'] as number) || 0)
+      }
+    } catch (e) {}
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 20px 14px 36px; box-sizing: border-box; }
+.h { display: block; margin-bottom: 14px; font-size: 24px; line-height: 32px; font-weight: 700; color: #111827; }
+.grid { display: flex; flex-direction: row; flex-wrap: wrap; }
+.cell { width: 50%; min-height: 82px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.mv { display: block; font-size: 22px; line-height: 28px; font-weight: 700; color: #0f766e; }
+.ml { display: block; margin-top: 8px; font-size: 12px; line-height: 17px; color: #64748b; }
+.card { margin-top: 14px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.ch { display: block; margin-bottom: 10px; font-size: 15px; line-height: 21px; font-weight: 700; color: #111827; }
+.line { display: block; margin-top: 7px; font-size: 13px; line-height: 19px; color: #475569; }
+</style>

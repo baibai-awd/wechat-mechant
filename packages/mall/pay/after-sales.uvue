@@ -1,0 +1,475 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <!-- 关联商品 -->
+    <view class="card">
+      <text class="lab">关联商品</text>
+      <view class="goods-row">
+        <image v-if="orderCover.length > 0" class="thumb" :src="orderCover" mode="aspectFill" />
+        <view v-else class="thumb" />
+        <view class="mid">
+          <text class="title">{{ orderTitle }}</text>
+          <text class="spec">{{ orderSpec }}</text>
+        </view>
+        <view class="pr">
+          <text class="price">¥{{ orderAmount }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 售后类型 -->
+    <view class="card">
+      <text class="lab">售后类型</text>
+      <view class="tags">
+        <text v-for="(x, i) in typeLabels" :key="'tp' + i.toString()" class="tag" :class="typeIdx === i ? 'tag-on' : ''" @click="setType(i)">{{ x }}</text>
+      </view>
+    </view>
+
+    <!-- 退款原因 -->
+    <view class="card">
+      <text class="lab">退款原因</text>
+      <view class="tags">
+        <text v-for="(x, i) in reasons" :key="'rs' + i.toString()" class="tag" :class="reasonIdx === i ? 'tag-on' : ''" @click="setReason(i)">{{ x }}</text>
+      </view>
+    </view>
+
+    <!-- 仅退款时可调金额 -->
+    <view v-if="typeIdx === 0" class="card">
+      <text class="lab">退款金额</text>
+      <view class="amount-row">
+        <text class="yuan">¥</text>
+        <input class="amount-in" type="digit" :value="refundAmount" @input="onAmount" />
+        <text class="max-amt">最多 ¥{{ orderAmount }}</text>
+      </view>
+    </view>
+
+    <!-- 问题描述 -->
+    <view class="card">
+      <text class="lab">问题描述</text>
+      <view class="ta-wrap">
+        <text v-if="desc.length === 0" class="ta-ph">请详细描述您遇到的问题（不少于 4 字）</text>
+        <textarea class="ta" :value="desc" @input="onDesc" />
+      </view>
+    </view>
+
+    <!-- 凭证上传 -->
+    <view class="card">
+      <text class="lab">上传凭证</text>
+      <text class="sub-lab">图片/视频，最多 3 个（选填）</text>
+      <view class="img-row">
+        <view v-for="(img, i) in images" :key="'img' + i.toString()" class="img-item">
+          <image class="img-pre" :src="img" mode="aspectFill" @click="previewImg(i)" />
+          <view class="img-del" @click="removeImg(i)">
+            <text class="img-del-t">×</text>
+          </view>
+        </view>
+        <view v-if="images.length < 3" class="img-add" @click="chooseImg">
+          <text class="img-add-t">+</text>
+          <text class="img-add-s">添加图片</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 退货地址（仅退货退款显示） -->
+    <view v-if="typeIdx === 1" class="addr-card">
+      <view class="addr-top">
+        <text class="addr-name">退货地址</text>
+        <text class="addr-copy" @click="copyAddr">复制</text>
+      </view>
+      <text class="addr-detail">上海市浦东新区张江高科技园区科苑路 88 号 3 号楼 201 室</text>
+      <text class="addr-contact">收件人：商家客服中心  联系电话：400-888-8888</text>
+    </view>
+
+    <!-- 提交按钮 -->
+    <view class="btn" @click="submit">
+      <text class="btn-t">提交申请</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getMallUniIdToken } from '@/utils/mall-auth.uts'
+
+  const typeLabels = ['仅退款', '退货退款']
+  const typeIdx = ref(0)
+  const reasons = ['商品破损', '商品与描述不符', '收到错误商品', '商品少发/漏发', '物流延迟', '其他']
+  const reasonIdx = ref(-1)
+  const desc = ref('')
+  const images = ref<string[]>([])
+
+  const orderTitle = ref('示例商品 A')
+  const orderSpec = ref('默认规格 ×1')
+  const orderAmount = ref('99.00')
+  const orderCover = ref('')
+  const orderId = ref('')
+
+  const refundAmount = ref('99.00')
+
+  onLoad((options: OnLoadOptions) => {
+    if (options != null) {
+      const oid = options['orderId'] as string
+      const title = options['title'] as string
+      const spec = options['spec'] as string
+      const amt = options['amount'] as string
+      const cover = options['cover'] as string
+      if (oid != null && oid.length > 0) orderId.value = oid
+      if (title != null && title.length > 0) orderTitle.value = title
+      if (spec != null && spec.length > 0) orderSpec.value = spec
+      if (amt != null && amt.length > 0) {
+        orderAmount.value = amt
+        refundAmount.value = amt
+      }
+      if (cover != null && cover.length > 0) orderCover.value = cover
+    }
+  })
+
+  function setType(i: number): void {
+    typeIdx.value = i
+    if (i === 0) {
+      reasons.length = 0
+      ;['商品破损', '商品与描述不符', '收到错误商品', '商品少发/漏发', '物流延迟', '其他'].forEach(r => reasons.push(r))
+      reasonIdx.value = -1
+    } else {
+      reasons.length = 0
+      ;['商品破损', '商品与描述不符', '收到错误商品', '商品少发/漏发', '其他'].forEach(r => reasons.push(r))
+      reasonIdx.value = -1
+    }
+  }
+
+  function setReason(i: number): void {
+    reasonIdx.value = i
+  }
+
+  function onDesc(e: UniInputEvent): void {
+    desc.value = e.detail.value
+  }
+
+  function onAmount(e: UniInputEvent): void {
+    const v = e.detail.value
+    if (v == null) return
+    const num = parseFloat(v)
+    if (!isNaN(num) && num >= 0 && num <= parseFloat(orderAmount.value)) {
+      refundAmount.value = v
+    }
+  }
+
+  function chooseImg(): void {
+    if (images.value.length >= 3) {
+      uni.showToast({ title: '最多上传 3 张', icon: 'none' })
+      return
+    }
+    uni.chooseImage({
+      count: 3 - images.value.length,
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const paths = res.tempFilePaths
+        if (paths != null && paths.length > 0) {
+          images.value = images.value.concat(paths)
+        }
+      }
+    })
+  }
+
+  function previewImg(i: number): void {
+    const path = images.value[i]
+    if (path == null) return
+    uni.previewImage({
+      urls: images.value as string[],
+      current: i.toString()
+    })
+  }
+
+  function removeImg(i: number): void {
+    images.value.splice(i, 1)
+  }
+
+  function copyAddr(): void {
+    uni.setClipboardData({
+      data: '上海市浦东新区张江高科技园区科苑路 88 号 3 号楼 201 室',
+      success: () => {
+        uni.showToast({ title: '已复制地址', icon: 'success' })
+      }
+    })
+  }
+
+  function submit(): void {
+    if (reasonIdx.value < 0) {
+      uni.showToast({ title: '请选择退款原因', icon: 'none' })
+      return
+    }
+    if (desc.value.length < 4) {
+      uni.showToast({ title: '请详细描述问题（至少 4 字）', icon: 'none' })
+      return
+    }
+    uni.showModal({
+      title: '确认提交',
+      content: '确定要提交此售后申请吗？',
+      showCancel: true,
+      success: (res) => {
+        if (res != null && res['confirm'] === true) {
+          doSubmit()
+        }
+      }
+    })
+  }
+
+  async function doSubmit(): Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      uni.showToast({ title: '请先登录', icon: 'none' })
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.createAfterSales({
+        token,
+        order_id: orderId.value,
+        type: typeIdx.value,
+        reason: reasons[reasonIdx.value] || '',
+        amount: refundAmount.value,
+        desc: desc.value,
+        images: images.value
+      }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        uni.showToast({ title: '提交成功', icon: 'success' })
+        const asNo = res['afterSalesNo'] as string
+        setTimeout(() => {
+          uni.redirectTo({
+            url: '/packages/mall/pay/after-sales-detail?orderId=' + encodeURIComponent(orderId.value) +
+              '&statusKey=progress&statusText=待处理&type=' + typeIdx.value +
+              '&reason=' + encodeURIComponent(reasons[reasonIdx.value] || '') +
+              '&amount=' + encodeURIComponent(refundAmount.value) +
+              '&desc=' + encodeURIComponent(desc.value) +
+              '&goodsTitle=' + encodeURIComponent(orderTitle.value) +
+              '&spec=' + encodeURIComponent(orderSpec.value) +
+              '&cover=' + encodeURIComponent(orderCover.value) +
+              '&time=' + encodeURIComponent(new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }).replace(/\//g, '-'))
+          })
+        }, 800)
+      } else {
+        uni.showToast({ title: (res['errMsg'] as string) || '提交失败', icon: 'none' })
+      }
+    } catch (e: any) {
+      uni.showToast({ title: '网络错误，请稍后重试', icon: 'none' })
+    }
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.lab {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+.sub-lab {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: -8px;
+  margin-bottom: 12px;
+}
+.tags {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.tag {
+  margin-right: 8px;
+  margin-bottom: 8px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  background-color: #f3f4f6;
+  font-size: 13px;
+  color: #4b5563;
+}
+.tag-on {
+  background-color: rgba(5, 150, 105, 0.15);
+  color: #059669;
+  font-weight: 600;
+}
+.goods-row {
+  flex-direction: row;
+  align-items: center;
+}
+.thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background-color: #f3f4f6;
+}
+.mid {
+  flex: 1;
+  margin-left: 12px;
+  flex-direction: column;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.spec {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.pr {
+  align-items: flex-end;
+}
+.price {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.amount-row {
+  flex-direction: row;
+  align-items: center;
+}
+.yuan {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-right: 4px;
+}
+.amount-in {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  min-width: 80px;
+}
+.max-amt {
+  margin-left: 12px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+.ta-wrap {
+  position: relative;
+  flex-direction: column;
+}
+.ta-ph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 15px;
+  color: #9ca3af;
+  z-index: 0;
+  pointer-events: none;
+}
+.ta {
+  min-height: 100px;
+  font-size: 15px;
+  color: #111827;
+  z-index: 1;
+  background-color: transparent;
+}
+.img-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.img-item {
+  margin-right: 10px;
+  margin-bottom: 10px;
+  position: relative;
+}
+.img-pre {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+}
+.img-del {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  align-items: center;
+  justify-content: center;
+}
+.img-del-t {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 700;
+}
+.img-add {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  border-width: 1px;
+  border-color: #d1d5db;
+  border-style: dashed;
+  background-color: #f9fafb;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.img-add-t {
+  font-size: 24px;
+  color: #9ca3af;
+  font-weight: 300;
+}
+.img-add-s {
+  font-size: 10px;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+.addr-card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #fff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  border-style: dashed;
+  flex-direction: column;
+}
+.addr-top {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.addr-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+.addr-copy {
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
+}
+.addr-detail {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+.addr-contact {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.btn {
+  margin-top: 8px;
+  margin-bottom: 32px;
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

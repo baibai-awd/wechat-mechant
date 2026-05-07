@@ -1,0 +1,84 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="sum">商品 {{ pid }} · 好评 98%（演示）</text>
+    <view class="r" v-for="x in list" :key="x.id">
+      <view class="top">
+        <text class="u">{{ x.user }}</text>
+        <text class="star">{{ stars(x.star) }}</text>
+      </view>
+      <text class="sku">{{ x.sku }}</text>
+      <text class="tx">{{ x.text }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockReviews, type MockReview } from '@/utils/mall-mock.uts'
+
+  const pid = ref('p1')
+  const list = ref<MockReview[]>(mockReviews())
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['productId'] as string
+    if (id != null && id.length > 0) {
+      pid.value = id
+    }
+  })
+
+  function stars(n : number) : string {
+    if (n >= 5) {
+      return '★★★★★'
+    }
+    if (n === 4) {
+      return '★★★★☆'
+    }
+    if (n === 3) {
+      return '★★★☆☆'
+    }
+    return '★★☆☆☆'
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px;
+}
+.sum {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+.r {
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.top {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.u {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.star {
+  font-size: 12px;
+  color: #f59e0b;
+}
+.sku {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.tx {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+</style>

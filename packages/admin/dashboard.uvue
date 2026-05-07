@@ -1,0 +1,128 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="h1">商家工作台</text>
+    <text class="sub">实时数据 · Admin API + uniCloud</text>
+    <view class="stats">
+      <view class="st" v-for="(s, i) in stats" :key="'st' + i.toString()">
+        <view class="st-in">
+          <text class="st-n">{{ s.n }}</text>
+          <text class="st-l">{{ s.l }}</text>
+        </view>
+      </view>
+    </view>
+    <text class="h2">快捷入口</text>
+    <view class="nav">
+      <view class="n" v-for="(x, i) in links" :key="'n' + i.toString()" @click="go(x.url)">
+        <text class="n-t">{{ x.t }}</text>
+        <text class="n-a">›</text>
+      </view>
+    </view>
+    <view class="logout" @click="logout">
+      <text class="logout-t">退出登录</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken, getAdminNick, clearAdminAuth } from '@/utils/admin-auth.uts'
+
+  type StatItem = { n: string; l: string }
+
+  const stats = ref<StatItem[]>([
+    { n: '-', l: '近 7 日成交额' },
+    { n: '-', l: '待发货' },
+    { n: '-', l: '访客' },
+    { n: '-', l: '评分' }
+  ])
+
+  const links = [
+    { t: '订单管理', url: '/packages/admin/orders' },
+    { t: '售后管理', url: '/packages/admin/after-sales' },
+    { t: '商品管理', url: '/packages/admin/products' },
+    { t: '商品分析', url: '/packages/admin/product-analytics' },
+    { t: '店铺设置', url: '/packages/admin/shop-settings' },
+    { t: '角色权限', url: '/packages/admin/roles' }
+  ]
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      goLogin()
+    } else {
+      loadStats()
+    }
+  })
+
+  function goLogin(): void {
+    uni.reLaunch({ url: '/packages/admin/login' })
+  }
+
+  async function loadStats() : Promise<void> {
+    const token = getAdminToken()
+    if (!token) {
+      goLogin()
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const [orderRes, productRes] = await Promise.all([
+        co.getOrderStats({ token }) as Promise<UTSJSONObject>,
+        co.getProductStats({ token }) as Promise<UTSJSONObject>
+      ])
+      const errCode1 = orderRes['errCode'] as number
+      const errCode2 = productRes['errCode'] as number
+      if (errCode1 === 401 || errCode2 === 401) {
+        uni.showToast({ title: '登录已失效，请重新登录', icon: 'none' })
+        setTimeout(() => { goLogin() }, 1500)
+        return
+      }
+      if (errCode1 === 0) {
+        const s = orderRes['stats'] as UTSJSONObject
+        stats.value = [
+          { n: '¥' + ((s['order7dYuan'] as string) || '0'), l: '近 7 日成交额' },
+          { n: String((s['pendingShip'] as number) || 0), l: '待发货' },
+          { n: String((s['visitors7d'] as number) || 0), l: '访客' },
+          { n: '4.8', l: '评分' }
+        ]
+      }
+    } catch (e: any) {
+      const msg = e && e.message ? e.message : (e && e.errMsg ? e.errMsg : '')
+      uni.showToast({ title: '加载失败: ' + msg, icon: 'none', duration: 3000 })
+      setTimeout(() => { goLogin() }, 1500)
+    }
+  }
+
+  function go(url : string) : void {
+    uni.navigateTo({ url: url })
+  }
+
+  function logout() : void {
+    uni.showModal({
+      title: '退出登录',
+      content: '确认退出商家后台？',
+      success: (res) => {
+        if (res.confirm) {
+          clearAdminAuth()
+          uni.reLaunch({ url: '/packages/admin/login' })
+        }
+      }
+    })
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 22px 16px 40px; box-sizing: border-box; }
+.h1 { display: block; font-size: 26px; line-height: 34px; font-weight: 700; color: #111827; }
+.sub { display: block; margin-top: 6px; font-size: 13px; line-height: 18px; color: #64748b; }
+.stats { display: flex; flex-direction: row; flex-wrap: wrap; margin-top: 18px; margin-left: -6px; margin-right: -6px; }
+.st { width: 50%; padding: 6px; box-sizing: border-box; }
+.st-in { min-height: 86px; padding: 16px 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.st-n { display: block; font-size: 24px; line-height: 30px; font-weight: 700; color: #0f766e; }
+.st-l { display: block; margin-top: 8px; font-size: 12px; line-height: 17px; color: #64748b; }
+.h2 { display: block; margin-top: 22px; margin-bottom: 10px; font-size: 17px; line-height: 24px; font-weight: 700; color: #111827; }
+.nav { background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; overflow: hidden; }
+.n { min-height: 54px; padding: 0 14px; border-bottom: 1px solid #eef0f3; display: flex; flex-direction: row; align-items: center; justify-content: space-between; box-sizing: border-box; }
+.n-t { font-size: 15px; line-height: 22px; font-weight: 600; color: #1f2937; }
+.n-a { font-size: 24px; line-height: 24px; color: #94a3b8; }
+.logout { height: 46px; margin-top: 18px; border-radius: 8px; background-color: #fff1f2; border: 1px solid #fecdd3; display: flex; align-items: center; justify-content: center; }
+.logout-t { font-size: 15px; line-height: 21px; font-weight: 700; color: #be123c; }
+</style>

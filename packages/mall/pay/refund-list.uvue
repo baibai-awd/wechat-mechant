@@ -1,0 +1,67 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="row" v-for="r in list" :key="r.id" @click="go(r.id)">
+      <view class="mid">
+        <text class="t">{{ r.goodsTitle }}</text>
+        <text class="s">{{ r.time }}</text>
+      </view>
+      <view class="right">
+        <text class="st">{{ r.status }}</text>
+        <text class="amt">¥{{ r.amount }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockRefunds, type MockRefund } from '@/utils/mall-mock.uts'
+
+  const list = ref<MockRefund[]>(mockRefunds())
+
+  function go(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/pay/refund-detail?id=' + id })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.row {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+}
+.mid {
+  flex: 1;
+  flex-direction: column;
+}
+.t {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.s {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.right {
+  align-items: flex-end;
+  flex-direction: column;
+}
+.st {
+  font-size: 13px;
+  font-weight: 600;
+  color: #059669;
+}
+.amt {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+</style>

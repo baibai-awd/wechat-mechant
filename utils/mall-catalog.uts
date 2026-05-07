@@ -1,0 +1,60 @@
+/** 商品展示 DTO：本地回退 + mall-co 云库对齐 */
+
+export type MallProductBrief = {
+  id: string
+  title: string
+  priceYuan: string
+  tag: string
+  sub: string
+  cover: string
+}
+
+const COVER_A = '/static/mall/products/product-a.png'
+const COVER_B = '/static/mall/products/product-b.png'
+const COVER_C = '/static/mall/products/product-c.png'
+const COVER_D = '/static/mall/products/product-d.png'
+
+export function getSampleProductCover(index: number): string {
+  const n = index % 4
+  if (n === 0) return COVER_A
+  if (n === 1) return COVER_B
+  if (n === 2) return COVER_C
+  return COVER_D
+}
+
+export function getProductBrief(id: string): MallProductBrief {
+  if (id === 'p1') {
+    return { id: 'p1', title: '示例商品 A', priceYuan: '99.00', tag: '热卖', sub: '48h 发货 · 7 天无理由', cover: COVER_A }
+  }
+  if (id === 'p2') {
+    return { id: 'p2', title: '示例商品 B', priceYuan: '128.00', tag: '', sub: '正品保障 · 包邮', cover: COVER_B }
+  }
+  if (id === 'p3') {
+    return { id: 'p3', title: '示例商品 C', priceYuan: '59.00', tag: '新品', sub: '限时加赠小样', cover: COVER_C }
+  }
+  if (id === 'p4') {
+    return { id: 'p4', title: '示例商品 D', priceYuan: '199.00', tag: '', sub: '门店同款', cover: COVER_D }
+  }
+  return {
+    id: id,
+    title: '精选好物',
+    priceYuan: '99.00',
+    tag: '',
+    sub: '详细描述与规格以实物为准',
+    cover: ''
+  }
+}
+
+export function listMallProductBriefs(): MallProductBrief[] {
+  const ids = ['p1', 'p2', 'p3', 'p4']
+  const out: MallProductBrief[] = []
+  for (let i = 0; i < ids.length; i++) {
+    out.push(getProductBrief(ids[i]))
+  }
+  return out
+}
+
+export function hasUniCloudMall(): boolean {
+  // @ts-ignore
+  return typeof uniCloud != 'undefined' && uniCloud.config != null && uniCloud.config.spaceId != null && uniCloud.config.spaceId != ''
+}

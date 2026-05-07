@@ -1,0 +1,66 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="oid">订单 {{ orderId }}</text>
+    <view class="card" v-for="(s, i) in steps" :key="'k' + i.toString()">
+      <view class="step-i">
+        <text class="step-num">{{ (i + 1).toString() }}</text>
+      </view>
+      <text class="step-t">{{ s }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockTrackSteps } from '@/utils/mall-mock.uts'
+
+  const orderId = ref('—')
+  const steps = ref<string[]>(mockTrackSteps())
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['orderId'] as string
+    if (id != null && id.length > 0) {
+      orderId.value = id
+    }
+  })
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.oid {
+  font-size: 15px;
+  font-weight: 700;
+  color: #374151;
+  margin-bottom: 12px;
+}
+.card {
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+  align-items: flex-start;
+}
+.step-i {
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: #059669;
+  margin-right: 12px;
+  align-items: center;
+  justify-content: center;
+}
+.step-num {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.step-t {
+  flex: 1;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+</style>

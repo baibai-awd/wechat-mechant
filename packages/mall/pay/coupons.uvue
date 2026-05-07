@@ -1,0 +1,107 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="tabs">
+      <text class="tab" :class="idx === 0 ? 'on' : ''" @click="setIdx(0)">未使用</text>
+      <text class="tab" :class="idx === 1 ? 'on' : ''" @click="setIdx(1)">已使用/过期</text>
+    </view>
+    <view class="c" v-for="c in showList" :key="c.id">
+      <text class="amt">{{ c.amountText }}</text>
+      <view class="mid">
+        <text class="t">{{ c.title }}</text>
+        <text class="s">{{ c.sub }}</text>
+        <text class="e">有效期至 {{ c.expired }}</text>
+      </view>
+    </view>
+    <view class="emp" v-if="showList.length === 0">
+      <text class="emp-t">暂无优惠券</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockCoupons, type MockCoupon } from '@/utils/mall-mock.uts'
+
+  const idx = ref(0)
+  const all = ref<MockCoupon[]>(mockCoupons())
+
+  const showList = computed((): MockCoupon[] => {
+    const out: MockCoupon[] = []
+    for (let i = 0; i < all.value.length; i++) {
+      const u = all.value[i].used
+      if (idx.value === 0 && !u) {
+        out.push(all.value[i])
+      }
+      if (idx.value === 1 && u) {
+        out.push(all.value[i])
+      }
+    }
+    return out
+  })
+
+  function setIdx(i : number) : void {
+    idx.value = i
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.tabs {
+  flex-direction: row;
+  margin-bottom: 16px;
+}
+.tab {
+  margin-right: 20px;
+  font-size: 15px;
+  color: #6b7280;
+  padding-bottom: 8px;
+}
+.tab.on {
+  font-weight: 700;
+  color: #059669;
+  border-bottom-width: 2px;
+  border-bottom-color: #059669;
+}
+.c {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+}
+.amt {
+  font-size: 20px;
+  font-weight: 800;
+  color: #059669;
+  width: 72px;
+}
+.mid {
+  flex: 1;
+  flex-direction: column;
+}
+.t {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+.s {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.e {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+.emp {
+  padding: 40px;
+  align-items: center;
+}
+.emp-t {
+  font-size: 14px;
+  color: #9ca3af;
+}
+</style>

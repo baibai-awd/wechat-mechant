@@ -1,0 +1,45 @@
+/**
+ * 商家后台 Token 管理
+ */
+
+const ADMIN_TOKEN_KEY = 'admin_uni_id_token'
+const ADMIN_ROLE_KEY = 'admin_role'
+const ADMIN_NICK_KEY = 'admin_nick'
+
+export function getAdminToken(): string {
+  const t = uni.getStorageSync(ADMIN_TOKEN_KEY)
+  if (t != null && (t as string).length > 0) {
+    return t as string
+  }
+  return ''
+}
+
+export function getAdminRole(): string {
+  const r = uni.getStorageSync(ADMIN_ROLE_KEY)
+  if (r == null) return ''
+  return r as string
+}
+
+export function getAdminNick(): string {
+  const n = uni.getStorageSync(ADMIN_NICK_KEY)
+  if (n == null) return ''
+  return n as string
+}
+
+export function setAdminAuth(token: string, role: string, nick: string): void {
+  uni.setStorageSync(ADMIN_TOKEN_KEY, token)
+  uni.setStorageSync(ADMIN_ROLE_KEY, role)
+  uni.setStorageSync(ADMIN_NICK_KEY, nick)
+  // 清理 mall 侧的旧 token，避免混淆
+  try {
+    uni.removeStorageSync('mall_uni_id_token')
+    uni.removeStorageSync('uni_id_token')
+    uni.removeStorageSync('mall_user_label')
+  } catch (e) {}
+}
+
+export function clearAdminAuth(): void {
+  uni.removeStorageSync(ADMIN_TOKEN_KEY)
+  uni.removeStorageSync(ADMIN_ROLE_KEY)
+  uni.removeStorageSync(ADMIN_NICK_KEY)
+}

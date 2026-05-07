@@ -1,0 +1,215 @@
+<template>
+  <view class="root">
+    <scroll-view class="scroll">
+      <swiper v-if="brief.cover != null && brief.cover.length > 0" class="hero-swiper" indicator-dots="false" circular="true">
+        <swiper-item>
+          <image class="hero-img" :src="brief.cover" mode="aspectFill" />
+        </swiper-item>
+      </swiper>
+      <swiper v-else class="hero-swiper" indicator-dots="true" circular="true">
+        <swiper-item>
+          <view class="hero-slide h1" />
+        </swiper-item>
+        <swiper-item>
+          <view class="hero-slide h2" />
+        </swiper-item>
+        <swiper-item>
+          <view class="hero-slide h3" />
+        </swiper-item>
+      </swiper>
+
+      <view class="block price-block">
+        <view class="price-row">
+          <text class="price-now">¥{{ brief.priceYuan }}</text>
+          <text class="price-tag" v-if="brief.tag !== ''">{{ brief.tag }}</text>
+        </view>
+        <text class="coupon">店铺券 · 满 199 减 20 · 去领取 ›</text>
+      </view>
+
+      <view class="block">
+        <text class="p-title">{{ brief.title }}</text>
+        <text class="p-sub">{{ brief.sub }}</text>
+      </view>
+
+      <view class="block spec-card" @click="toastSpec">
+        <text class="spec-label">已选</text>
+        <text class="spec-val">默认规格 · {{ buyQty }} 件 ¥{{ lineTotal }}</text>
+        <text class="spec-a">›</text>
+      </view>
+
+      <view class="block tab-card">
+        <view class="tab-row">
+          <text class="tab-on">详情</text>
+          <text class="tab-off">参数</text>
+        </view>
+        <text class="tab-body">{{ detailText }}</text>
+      </view>
+
+      <view class="scroll-bottom-pad" />
+    </scroll-view>
+
+    <view class="bottom">
+      <view class="bp">
+        <text class="bp-l">数量</text>
+        <view class="bp-ctl">
+          <view class="bp-btn" @click="chgQty(-1)">
+            <text class="bp-bt">−</text>
+          </view>
+          <text class="bp-n">{{ buyQty }}</text>
+          <view class="bp-btn" @click="chgQty(1)">
+            <text class="bp-bt">+</text>
+          </view>
+        </view>
+      </view>
+      <view class="bar2">
+        <view class="bar2-btn ghost" @click="addCart">
+          <text class="bar2-ghost-t">加入购物车</text>
+        </view>
+        <view class="bar2-btn primary" @click="buyNow">
+          <text class="bar2-primary-t">立即购买</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { addOrIncLine, formatYuan } from '@/utils/mall-cart.uts'
+  import { getProductBrief, getSampleProductCover, hasUniCloudMall, type MallProductBrief } from '@/utils/mall-catalog.uts'
+
+  const productId = ref('')
+  const brief = ref<MallProductBrief>(getProductBrief(''))
+  const buyQty = ref(1)
+  const lineTotal = ref('0.00')
+  const detailText = ref('图文详情 · 包装清单 · 售后政策（演示文案，接 CMS 后可展示富文本）')
+
+  function recalcLine(): void {
+    const p = parseFloat(brief.value.priceYuan)
+    lineTotal.value = formatYuan(p * buyQty.value)
+  }
+
+  async function loadFromCloud(): Promise<void> {
+    if (!hasUniCloudMall()) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getProductById({ id: productId.value }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const p = res['product'] as UTSJSONObject
+        if (p != null) {
+          const sub = p['sub'] as string
+          const html = p['detail_html'] as string
+          const cv = p['cover'] as string
+          const fallbackCover = brief.value.cover.length > 0 ? brief.value.cover : getSampleProductCover(0)
+          brief.value = {
+            id: p['id'] as string,
+            title: p['title'] as string,
+            priceYuan: p['priceYuan'] as string,
+            tag: p['tag'] != null ? (p['tag'] as string) : '',
+            sub: sub != null ? sub : '',
+            cover: cv != null && cv.length > 0 ? cv : fallbackCover
+          }
+          recalcLine()
+          if (html != null && html.length > 0) {
+            detailText.value = html
+          }
+        }
+      }
+    } catch (e) {
+      // 保持本地 getProductBrief
+    }
+  }
+
+  onLoad((options: OnLoadOptions) => {
+    const raw = options['id']
+    if (raw != null) {
+      productId.value = raw as string
+    } else {
+      productId.value = 'p1'
+    }
+    brief.value = getProductBrief(productId.value)
+    recalcLine()
+    loadFromCloud()
+  })
+
+  function chgQty(delta: number): void {
+    const n = buyQty.value + delta
+    if (n >= 1 && n <= 99) {
+      buyQty.value = n
+      recalcLine()
+    }
+  }
+
+  function toastSpec(): void {
+    uni.showToast({ title: '规格面板演示阶段占位', icon: 'none' })
+  }
+
+  function addCart(): void {
+    addOrIncLine({
+      id: productId.value,
+      title: brief.value.title,
+      priceYuan: brief.value.priceYuan,
+      cover: brief.value.cover,
+      qty: buyQty.value
+    })
+    uni.showToast({ title: '已加入购物车', icon: 'success' })
+  }
+
+  function buyNow(): void {
+    uni.navigateTo({
+      url: '/packages/mall/order/confirm?productId=' + productId.value + '&qty=' + buyQty.value.toString()
+    })
+  }
+</script>
+
+<style>
+.root { flex: 1; background-color: #f7f8fa; flex-direction: column; }
+.scroll { flex: 1; }
+.hero-swiper { height: 304px; background-color: #e9edf2; }
+.hero-slide { flex: 1; height: 100%; }
+.hero-img { width: 100%; height: 100%; }
+.hero-slide.h1 { background: linear-gradient(135deg, #d1fae5 0%, #99f6e4 100%); }
+.hero-slide.h2 { background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%); }
+.hero-slide.h3 { background: linear-gradient(135deg, #e0f2fe 0%, #bfdbfe 100%); }
+.block {
+  margin: 10px 16px 0 16px;
+  padding: 15px 16px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: column;
+}
+.price-block { margin-top: -18px; }
+.price-row { flex-direction: row; align-items: baseline; }
+.price-now { font-size: 25px; font-weight: 800; color: #0f766e; }
+.price-tag { margin-left: 10px; font-size: 12px; color: #b45309; background-color: #fffbeb; border-width: 1px; border-color: #fde68a; border-radius: 6px; padding: 2px 8px; font-weight: 800; }
+.coupon { margin-top: 10px; font-size: 13px; color: #9a3412; font-weight: 600; }
+.p-title { font-size: 18px; font-weight: 800; color: #111827; line-height: 1.35; }
+.p-sub { margin-top: 8px; font-size: 13px; color: #667085; line-height: 1.45; }
+.spec-card { flex-direction: row; align-items: center; }
+.spec-label { font-size: 13px; color: #8a94a6; margin-right: 10px; }
+.spec-val { flex: 1; font-size: 14px; color: #344054; font-weight: 600; }
+.spec-a { font-size: 18px; color: #9aa4b2; }
+.tab-card { margin-bottom: 8px; }
+.tab-row { flex-direction: row; margin-bottom: 10px; }
+.tab-on { font-size: 15px; font-weight: 800; color: #0f766e; margin-right: 24px; }
+.tab-off { font-size: 15px; color: #8a94a6; }
+.tab-body { font-size: 13px; color: #667085; line-height: 1.55; }
+.scroll-bottom-pad { height: 140px; }
+.bottom { padding-top: 10px; padding-bottom: 12px; background-color: #ffffff; border-top-width: 1px; border-top-color: #e6e8ec; }
+.bp { padding: 0 16px 8px 16px; flex-direction: row; align-items: center; justify-content: space-between; }
+.bp-l { font-size: 14px; color: #344054; font-weight: 800; }
+.bp-ctl { flex-direction: row; align-items: center; }
+.bp-btn { width: 36px; height: 36px; border-radius: 8px; background-color: #f1f5f9; border-width: 1px; border-color: #e2e8f0; align-items: center; justify-content: center; }
+.bp-bt { font-size: 20px; font-weight: 800; color: #334155; }
+.bp-n { margin-left: 16px; margin-right: 16px; font-size: 16px; font-weight: 800; color: #111827; min-width: 28px; text-align: center; }
+.bar2 { padding: 0 12px; flex-direction: row; }
+.bar2-btn { flex: 1; margin: 0 4px; padding: 12px; border-radius: 8px; align-items: center; justify-content: center; }
+.bar2-btn.ghost { border-width: 1.5px; border-color: #0f766e; background-color: #ffffff; }
+.bar2-btn.primary { background-color: #0f766e; }
+.bar2-ghost-t { font-size: 15px; font-weight: 800; color: #0f766e; }
+.bar2-primary-t { font-size: 15px; font-weight: 800; color: #ffffff; }
+</style>

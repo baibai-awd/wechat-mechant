@@ -1,0 +1,80 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="st">{{ tk.status }}</text>
+      <text class="title">{{ tk.title }}</text>
+      <text class="meta">工单号 {{ tk.id }} · {{ tk.time }}</text>
+    </view>
+    <view class="msg me">
+      <text class="msg-t">用户：问题的补充说明（演示）</text>
+    </view>
+    <view class="msg cs">
+      <text class="msg-t">客服：已收到，预计 24h 内回复。</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { findMockTicket, type MockTicket } from '@/utils/mall-mock.uts'
+
+  const tk = ref<MockTicket>(findMockTicket(''))
+
+  onLoad((options : OnLoadOptions) => {
+    const id = options['id'] as string
+    if (id != null && id.length > 0) {
+      tk.value = findMockTicket(id)
+    }
+  })
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.st {
+  font-size: 14px;
+  font-weight: 700;
+  color: #059669;
+}
+.title {
+  margin-top: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+.meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.msg {
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  max-width: 85%;
+  flex-direction: column;
+}
+.msg.me {
+  align-self: flex-end;
+  background-color: #d1fae5;
+}
+.msg.cs {
+  align-self: flex-start;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+}
+.msg-t {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.45;
+}
+</style>

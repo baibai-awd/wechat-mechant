@@ -1,0 +1,85 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <text class="t">在线客服</text>
+      <text class="s">智能客服示例可体验完整对话与富文本能力（与商城入口联动）。</text>
+      <view class="btn" @click="goAi">
+        <text class="btn-t">进入 AI 对话示例</text>
+      </view>
+      <view class="btn ghost" @click="call">
+        <text class="btn-g">拨打热线 400-000-0000（演示）</text>
+      </view>
+    </view>
+    <view class="faq" @click="goHelp">
+      <text class="faq-t">常见问题 ›</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  function goAi() : void {
+    uni.navigateTo({ url: '/pages/template/ai-chat/ai-chat' })
+  }
+  function call() : void {
+    uni.showToast({ title: '演示环境不拨号', icon: 'none' })
+  }
+  function goHelp() : void {
+    uni.navigateTo({ url: '/packages/mall/svc/help' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  padding: 24px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.t {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+}
+.s {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+.btn {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn.ghost {
+  margin-top: 12px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #059669;
+}
+.btn-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.btn-g {
+  font-size: 14px;
+  font-weight: 600;
+  color: #059669;
+}
+.faq {
+  margin-top: 20px;
+  align-items: center;
+}
+.faq-t {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 600;
+}
+</style>

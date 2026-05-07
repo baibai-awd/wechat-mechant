@@ -1,0 +1,84 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="h">商品分析</text>
+    <view class="stats-row">
+      <view class="stat-cell" v-for="(s, i) in overview" :key="'s' + i.toString()">
+        <text class="stat-v">{{ s.v }}</text>
+        <text class="stat-l">{{ s.l }}</text>
+      </view>
+    </view>
+    <view class="card">
+      <text class="c-h">浏览 · 加购 · 转化（近 7 日）</text>
+      <view class="bar-row" v-for="(x, i) in bars" :key="'b' + i.toString()">
+        <text class="bn">{{ x.n }}</text>
+        <view class="bar-bg">
+          <view class="bar-f" :style="{ width: x.pct }" />
+        </view>
+        <text class="bv">{{ x.v }}</text>
+      </view>
+    </view>
+    <text class="foot">图表区域可接 uCharts / 自研看板</text>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  type StatCell = { v: string; l: string }
+  type BarItem = { n: string; v: string; pct: string }
+
+  const overview = ref<StatCell[]>([
+    { v: '-', l: '总商品' },
+    { v: '-', l: '上架中' },
+    { v: '-', l: '下架' },
+    { v: '-', l: '总库存' }
+  ])
+
+  const bars = ref<BarItem[]>([
+    { n: '浏览', v: '12.4k', pct: '100%' },
+    { n: '加购', v: '5.2k', pct: '42%' },
+    { n: '下单', v: '2.3k', pct: '18%' }
+  ])
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+      return
+    }
+    loadData()
+  })
+
+  async function loadData(): Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.getProductStats({ token }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        const s = res['stats'] as UTSJSONObject
+        overview.value = [
+          { v: String((s['total'] as number) || 0), l: '总商品' },
+          { v: String((s['onSale'] as number) || 0), l: '上架中' },
+          { v: String((s['offSale'] as number) || 0), l: '下架' },
+          { v: String((s['totalStock'] as number) || 0), l: '总库存' }
+        ]
+      }
+    } catch (e) {}
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 20px 14px 36px; box-sizing: border-box; }
+.h { display: block; margin-bottom: 14px; font-size: 24px; line-height: 32px; font-weight: 700; color: #111827; }
+.stats-row { display: flex; flex-direction: row; flex-wrap: wrap; }
+.stat-cell { width: 50%; min-height: 82px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.stat-v { display: block; font-size: 22px; line-height: 28px; font-weight: 700; color: #0f766e; }
+.stat-l { display: block; margin-top: 8px; font-size: 12px; line-height: 17px; color: #64748b; }
+.card { margin-top: 14px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.c-h { display: block; margin-bottom: 12px; font-size: 15px; line-height: 21px; font-weight: 700; color: #111827; }
+.bar-row { min-height: 34px; display: flex; flex-direction: row; align-items: center; }
+.bn { width: 54px; font-size: 12px; line-height: 17px; color: #64748b; }
+.bar-bg { flex: 1; height: 8px; border-radius: 8px; background-color: #eef2f7; overflow: hidden; }
+.bar-f { height: 8px; border-radius: 8px; background-color: #0f766e; }
+.bv { width: 44px; text-align: right; font-size: 12px; line-height: 17px; color: #1f2937; font-weight: 700; }
+.foot { display: block; margin-top: 12px; font-size: 12px; line-height: 18px; color: #94a3b8; }
+</style>

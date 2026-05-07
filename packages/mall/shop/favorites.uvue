@@ -1,0 +1,131 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="row" v-for="p in list" :key="p.id" @click="goPd(p.id)">
+      <image v-if="p.cover != null && p.cover.length > 0" class="thumb" :src="p.cover" mode="aspectFill" />
+      <view v-else class="thumb" />
+      <view class="mid">
+        <text class="title">{{ p.title }}</text>
+        <text class="sub">{{ p.sub }}</text>
+        <text class="price">¥{{ p.priceYuan }}</text>
+      </view>
+      <text class="del" @click.stop="toast">取消收藏</text>
+    </view>
+    <view class="empty" v-if="list.length === 0">
+      <text class="empty-t">暂无收藏</text>
+      <text class="link" @click="goHome">去逛逛</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { listMallProductBriefs, hasUniCloudMall, type MallProductBrief } from '@/utils/mall-catalog.uts'
+
+  const list = ref<MallProductBrief[]>(listMallProductBriefs())
+
+  onShow(() => {
+    list.value = listMallProductBriefs()
+    loadCloud()
+  })
+
+  async function loadCloud() : Promise<void> {
+    if (!hasUniCloudMall()) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getProductList({ limit: 40, kw: '' }) as UTSJSONObject
+      if (res['errCode'] != null && (res['errCode'] as number) === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        if (arr != null && arr.length > 0) {
+          const out: MallProductBrief[] = []
+          for (let i = 0; i < arr.length; i++) {
+            const o = arr[i]
+            const tg = o['tag']
+            const cv = o['cover']
+            out.push({
+              id: o['id'] as string,
+              title: o['title'] as string,
+              priceYuan: o['priceYuan'] as string,
+              tag: tg != null ? (tg as string) : '',
+              sub: '',
+              cover: cv != null ? (cv as string) : ''
+            })
+          }
+          list.value = out
+        }
+      }
+    } catch (e) {}
+  }
+
+  function goPd(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/shop/product-detail?id=' + id })
+  }
+  function toast() : void {
+    uni.showToast({ title: '演示：已移除', icon: 'none' })
+  }
+  function goHome() : void {
+    uni.switchTab({ url: '/pages/mall/home/home' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px;
+}
+.row {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+  align-items: center;
+}
+.thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  background-color: #e5e5ea;
+}
+.mid {
+  flex: 1;
+  margin-left: 12px;
+  flex-direction: column;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.price {
+  margin-top: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #059669;
+}
+.del {
+  font-size: 12px;
+  color: #9ca3af;
+}
+.empty {
+  padding: 48px;
+  align-items: center;
+  flex-direction: column;
+}
+.empty-t {
+  font-size: 15px;
+  color: #6b7280;
+}
+.link {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #059669;
+  font-weight: 600;
+}
+</style>

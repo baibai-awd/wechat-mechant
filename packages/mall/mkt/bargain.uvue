@@ -1,0 +1,99 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card">
+      <view class="thumb" />
+      <text class="t">好友助力 · 砍到心动价</text>
+      <text class="sub">示例商品 B · 已砍 ¥18 · 还差 3 刀</text>
+      <view class="bar-bg">
+        <view class="bar" />
+      </view>
+      <text class="tip">现价 ¥110.00 · 底价 ¥99.00</text>
+    </view>
+    <view class="btn" @click="share">
+      <text class="btn-t">找好友砍一刀</text>
+    </view>
+    <view class="rule" @click="goRule">
+      <text class="rule-t">活动规则 ›</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  function share() : void {
+    uni.showToast({ title: '演示：分享面板', icon: 'none' })
+  }
+  function goRule() : void {
+    uni.navigateTo({ url: '/packages/mall/pay/promo-rule' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.card {
+  padding: 20px 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+  align-items: center;
+}
+.thumb {
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  background-color: #fef3c7;
+  margin-bottom: 16px;
+}
+.t {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+.sub {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+}
+.bar-bg {
+  margin-top: 16px;
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background-color: #f3f4f6;
+}
+.bar {
+  width: 42%;
+  height: 10px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+.tip {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #374151;
+}
+.btn {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  align-items: center;
+}
+.btn-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+.rule {
+  margin-top: 20px;
+  align-items: center;
+}
+.rule-t {
+  font-size: 14px;
+  color: #059669;
+  font-weight: 600;
+}
+</style>

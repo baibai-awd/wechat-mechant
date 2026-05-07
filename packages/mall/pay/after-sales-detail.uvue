@@ -1,0 +1,485 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <!-- 状态卡片 -->
+    <view class="status-card" :class="'sc-' + row.statusKey">
+      <view class="status-inner">
+        <text class="st-icon">{{ statusIcon }}</text>
+        <view class="st-text">
+          <text class="st-title">{{ row.statusText }}</text>
+          <text class="st-sub" v-if="row.statusKey === 'progress'">商家将在 24 小时内处理</text>
+          <text class="st-sub" v-if="row.statusKey === 'success'">退款金额已原路返回</text>
+          <text class="st-sub" v-if="row.statusKey === 'rejected'">可联系客服进一步申诉</text>
+          <text class="st-sub" v-if="row.statusKey === 'closed'">该售后已关闭</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 进度时间线 -->
+    <view class="card">
+      <text class="h">处理进度</text>
+      <view v-for="(step, i) in row.steps" :key="'s' + i.toString()" class="step" :class="i === 0 ? 'step-first' : ''">
+        <view class="step-dot-col">
+          <view class="step-dot" :class="i === 0 ? 'dot-active' : 'dot-done'" />
+          <view v-if="i < row.steps.length - 1" class="step-line" :class="i === 0 ? 'line-active' : 'line-done'" />
+        </view>
+        <view class="step-content">
+          <text class="step-t" :class="i === 0 ? 'st-first' : ''">{{ step.title }}</text>
+          <text class="step-tm" v-if="step.time != null && step.time.length > 0">{{ step.time }}</text>
+          <text class="step-desc" v-if="step.desc != null && step.desc.length > 0">{{ step.desc }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 退货地址（退货退款且未关闭时显示） -->
+    <view v-if="row.type === 1 && row.statusKey !== 'closed'" class="addr-card">
+      <view class="addr-top">
+        <text class="addr-lab">退货地址</text>
+        <text class="addr-copy" @click="copyAddr">复制</text>
+      </view>
+      <text class="addr-detail">上海市浦东新区张江高科技园区科苑路 88 号 3 号楼 201 室</text>
+      <text class="addr-contact">收件人：商家客服中心  联系电话：400-888-8888</text>
+      <text class="addr-tip">⚠ 请在 7 天内寄回，逾期将自动关闭申请</text>
+    </view>
+
+    <!-- 凭证材料 -->
+    <view v-if="row.images.length > 0" class="card">
+      <text class="h">凭证材料</text>
+      <view class="img-row">
+        <view v-for="(img, i) in row.images" :key="'ev' + i.toString()" class="img-item">
+          <image class="img-pre" :src="img" mode="aspectFill" @click="previewImg(i)" />
+        </view>
+      </view>
+    </view>
+
+    <!-- 售后信息 -->
+    <view class="card">
+      <text class="h">售后信息</text>
+      <view class="line">
+        <text class="k">售后单号</text>
+        <text class="v">{{ row.id }}</text>
+      </view>
+      <view class="line">
+        <text class="k">售后类型</text>
+        <text class="v">{{ row.type === 0 ? '仅退款' : '退货退款' }}</text>
+      </view>
+      <view class="line">
+        <text class="k">退款原因</text>
+        <text class="v">{{ row.reason }}</text>
+      </view>
+      <view class="line">
+        <text class="k">申请时间</text>
+        <text class="v">{{ row.time }}</text>
+      </view>
+      <view class="line">
+        <text class="k">退款金额</text>
+        <text class="v green">¥{{ row.amount }}</text>
+      </view>
+    </view>
+
+    <!-- 问题描述 -->
+    <view class="card">
+      <text class="h">问题描述</text>
+      <text class="desc-text">{{ row.desc }}</text>
+    </view>
+
+    <!-- 关联商品 -->
+    <view class="card">
+      <text class="h">关联商品</text>
+      <view class="goods-row">
+        <image v-if="row.cover.length > 0" class="thumb" :src="row.cover" mode="aspectFill" />
+        <view v-else class="thumb" />
+        <view class="mid">
+          <text class="title">{{ row.goodsTitle }}</text>
+          <text class="spec">{{ row.spec }}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 客服介入入口 -->
+    <view class="cs-card" @click="goChat">
+      <view class="cs-left">
+        <text class="cs-icon">客服</text>
+        <view class="cs-text">
+          <text class="cs-t">需要客服介入？</text>
+          <text class="cs-s">平台客服将公平公正处理您的诉求</text>
+        </view>
+      </view>
+      <text class="cs-arrow">›</text>
+    </view>
+
+    <view style="height: 32px;" />
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { findMockAfterSales, type MockAfterSales } from '@/utils/mall-mock.uts'
+  import { getMallUniIdToken } from '@/utils/mall-auth.uts'
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+
+  const row = ref<MockAfterSales>(findMockAfterSales(''))
+
+  const statusIcon = computed((): string => {
+    const key = row.value.statusKey
+    if (key === 'progress') return '⏳'
+    if (key === 'success') return '✅'
+    if (key === 'rejected') return '❌'
+    return '🔒'
+  })
+
+  onLoad((options: OnLoadOptions) => {
+    if (options == null) {
+      return
+    }
+    // 优先从 URL 参数读取（来自售后申请提交后或售后列表页）
+    const orderId = options['orderId'] as string
+    const statusKey = options['statusKey'] as string
+    const statusText = options['statusText'] as string
+    const type = options['type'] as string
+    const reason = options['reason'] as string
+    const amount = options['amount'] as string
+    const time = options['time'] as string
+    const goodsTitle = options['goodsTitle'] as string
+    const spec = options['spec'] as string
+    const cover = options['cover'] as string
+    const desc = options['desc'] as string
+    const imagesRaw = options['images'] as string
+    const stepsRaw = options['steps'] as string
+
+    if (statusKey != null && statusKey.length > 0) {
+      // 有完整参数，直接使用（来自申请提交后或售后列表）
+      row.value = {
+        id: orderId || '',
+        statusKey,
+        statusText: statusText || '',
+        type: type != null ? parseInt(type) : 0,
+        reason: reason || '',
+        amount: amount || '0',
+        time: time || '',
+        goodsTitle: goodsTitle || '',
+        spec: spec || '',
+        cover: cover || '',
+        images: imagesRaw ? JSON.parse(imagesRaw) : [],
+        desc: desc || '',
+        steps: stepsRaw ? JSON.parse(stepsRaw) : []
+      }
+    } else if (orderId != null && orderId.length > 0) {
+      // 无完整参数（来自订单详情的查看售后），从云端加载真实数据
+      loadFromCloud(orderId)
+    }
+  })
+
+  async function loadFromCloud(orderNo: string): Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) return
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.getMyAfterSalesList({ token, limit: 50 }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        for (let i = 0; i < arr.length; i++) {
+          const item = arr[i]
+          if ((item['id'] as string) === orderNo) {
+            row.value = {
+              id: (item['id'] as string) || '',
+              statusKey: (item['statusKey'] as string) || 'progress',
+              statusText: (item['statusText'] as string) || '',
+              type: (item['type'] as number) || 0,
+              reason: (item['reason'] as string) || '',
+              amount: (item['amount'] as string) || '0',
+              time: (item['time'] as string) || '',
+              goodsTitle: (item['goodsTitle'] as string) || '',
+              spec: (item['spec'] as string) || '',
+              cover: (item['cover'] as string) || '',
+              images: (item['images'] as string[]) || [],
+              desc: (item['desc'] as string) || '',
+              steps: (item['steps'] as any[]) || []
+            }
+            return
+          }
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    row.value = findMockAfterSales(orderNo)
+  }
+
+  function previewImg(i: number): void {
+    const path = row.value.images[i]
+    if (path == null) return
+    uni.previewImage({ urls: row.value.images as string[], current: i.toString() })
+  }
+
+  function copyAddr(): void {
+    uni.setClipboardData({
+      data: '上海市浦东新区张江高科技园区科苑路 88 号 3 号楼 201 室',
+      success: () => {
+        uni.showToast({ title: '已复制地址', icon: 'success' })
+      }
+    })
+  }
+
+  function goChat(): void {
+    uni.navigateTo({ url: '/packages/mall/svc/chat' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px 0;
+}
+.status-card {
+  padding: 20px 16px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  flex-direction: column;
+}
+.sc-progress {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+}
+.sc-success {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+.sc-rejected {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+}
+.sc-closed {
+  background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+}
+.status-inner {
+  flex-direction: row;
+  align-items: center;
+}
+.st-icon {
+  font-size: 32px;
+  margin-right: 14px;
+}
+.st-text {
+  flex-direction: column;
+}
+.st-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.st-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.h {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 14px;
+}
+.step {
+  flex-direction: row;
+  align-items: flex-start;
+}
+.step-dot-col {
+  align-items: center;
+  margin-right: 14px;
+}
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+}
+.dot-active {
+  background-color: #059669;
+}
+.dot-done {
+  background-color: #059669;
+}
+.step-line {
+  width: 2px;
+  flex: 1;
+  min-height: 24px;
+}
+.line-active {
+  background-color: #059669;
+}
+.line-done {
+  background-color: #059669;
+}
+.step-content {
+  flex: 1;
+  flex-direction: column;
+  padding-bottom: 16px;
+}
+.step-first .st-first {
+  font-weight: 700;
+  color: #111827;
+}
+.step-t {
+  font-size: 14px;
+  color: #6b7280;
+}
+.step-tm {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.step-desc {
+  margin-top: 4px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+.addr-card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #fff;
+  border-width: 1px;
+  border-color: #f59e0b;
+  flex-direction: column;
+}
+.addr-top {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.addr-lab {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+.addr-copy {
+  font-size: 13px;
+  color: #059669;
+  font-weight: 600;
+}
+.addr-detail {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+.addr-contact {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.addr-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #d97706;
+}
+.img-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.img-item {
+  margin-right: 10px;
+  margin-bottom: 10px;
+}
+.img-pre {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+}
+.line {
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #f3f4f6;
+}
+.k {
+  font-size: 14px;
+  color: #9ca3af;
+}
+.v {
+  font-size: 14px;
+  color: #111827;
+}
+.v.green {
+  color: #059669;
+  font-weight: 700;
+}
+.desc-text {
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+.goods-row {
+  flex-direction: row;
+  align-items: center;
+}
+.thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  background-color: #f3f4f6;
+}
+.mid {
+  flex: 1;
+  margin-left: 12px;
+  flex-direction: column;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.spec {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.cs-card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.cs-left {
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+.cs-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: rgba(5, 150, 105, 0.1);
+  color: #059669;
+  font-size: 13px;
+  font-weight: 700;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+.cs-text {
+  flex-direction: column;
+}
+.cs-t {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.cs-s {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+.cs-arrow {
+  font-size: 20px;
+  color: #9ca3af;
+}
+</style>

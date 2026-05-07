@@ -1,0 +1,112 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="h">店铺设置</text>
+    <view class="row" v-for="(s, i) in items" :key="'s' + i.toString()" @click="toggle(i)">
+      <view class="mid">
+        <text class="t">{{ s.t }}</text>
+        <text class="sub">{{ s.sub }}</text>
+      </view>
+      <text :class="s.on ? 'sw-on' : 'sw-off'">{{ s.on ? '开' : '关' }}</text>
+    </view>
+    <view class="card">
+      <text class="lab">店铺名称</text>
+      <input class="inp" placeholder="请输入店铺名称" :value="shopName" @input="onName" />
+    </view>
+    <view class="btn" @click="save">
+      <text class="btn-t">{{ saving ? '保存中...' : '保存设置' }}</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { getAdminToken } from '@/utils/admin-auth.uts'
+
+  type SetItem = { t: string; sub: string; on: boolean }
+
+  const items = ref<SetItem[]>([
+    { t: '自动接待', sub: '工作时间外留言入库', on: true },
+    { t: '到店自提', sub: '买家可选自提点', on: true },
+    { t: '短信通知', sub: '发货/退款短信（演示关）', on: false }
+  ])
+  const shopName = ref('')
+  const saving = ref(false)
+
+  onLoad(() => {
+    const token = getAdminToken()
+    if (token.length === 0) {
+      uni.redirectTo({ url: '/packages/admin/login' })
+      return
+    }
+    loadSettings()
+  })
+
+  async function loadSettings(): Promise<void> {
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.getShopSettings({ token }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        const s = res['settings'] as UTSJSONObject
+        if (s) {
+          items.value = [
+            { t: '自动接待', sub: '工作时间外留言入库', on: !!(s['autoReply']) },
+            { t: '到店自提', sub: '买家可选自提点', on: !!(s['pickupEnabled']) },
+            { t: '短信通知', sub: '发货/退款短信（演示关）', on: !!(s['smsEnabled']) }
+          ]
+          shopName.value = (s['shopName'] as string) || ''
+        }
+      }
+    } catch (e) {}
+  }
+
+  function toggle(i: number): void {
+    const cur = items.value[i]
+    items.value[i] = { t: cur.t, sub: cur.sub, on: !cur.on }
+  }
+
+  function onName(e: UniInputEvent): void {
+    shopName.value = e.detail.value || ''
+  }
+
+  async function save(): Promise<void> {
+    if (saving.value) return
+    saving.value = true
+    const token = getAdminToken()
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('admin-co')
+      const res = await co.updateShopSettings({
+        token,
+        autoReply: items.value[0].on,
+        pickupEnabled: items.value[1].on,
+        smsEnabled: items.value[2].on,
+        shopName: shopName.value
+      }) as UTSJSONObject
+      if (res['errCode'] === 0) {
+        uni.showToast({ title: '已保存', icon: 'success' })
+      } else {
+        uni.showToast({ title: (res['errMsg'] as string) || '保存失败', icon: 'none' })
+      }
+    } catch (e) {
+      uni.showToast({ title: '网络错误', icon: 'none' })
+    } finally {
+      saving.value = false
+    }
+  }
+</script>
+<style>
+.sc { min-height: 100%; background-color: #f7f8fa; padding: 20px 14px 36px; box-sizing: border-box; }
+.h { display: block; margin-bottom: 14px; font-size: 24px; line-height: 32px; font-weight: 700; color: #111827; }
+.row { min-height: 68px; margin-bottom: 10px; padding: 12px 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; box-sizing: border-box; }
+.mid { flex: 1; min-width: 0; }
+.t { display: block; font-size: 15px; line-height: 21px; font-weight: 700; color: #111827; }
+.sub { display: block; margin-top: 5px; font-size: 12px; line-height: 17px; color: #94a3b8; }
+.sw-on, .sw-off { min-width: 44px; height: 28px; border-radius: 8px; text-align: center; font-size: 13px; line-height: 28px; font-weight: 700; }
+.sw-on { background-color: #ecfdf5; color: #059669; }
+.sw-off { background-color: #f1f5f9; color: #64748b; }
+.card { margin-top: 16px; margin-bottom: 12px; padding: 14px; background-color: #ffffff; border: 1px solid #e6e8ec; border-radius: 8px; box-sizing: border-box; }
+.lab { display: block; margin-bottom: 8px; font-size: 13px; line-height: 18px; font-weight: 700; color: #475569; }
+.inp { height: 38px; font-size: 15px; line-height: 38px; color: #111827; }
+.btn { height: 48px; border-radius: 8px; background-color: #0f766e; display: flex; align-items: center; justify-content: center; }
+.btn-t { font-size: 16px; line-height: 22px; font-weight: 700; color: #ffffff; }
+</style>

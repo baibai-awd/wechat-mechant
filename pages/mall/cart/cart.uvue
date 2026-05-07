@@ -1,0 +1,164 @@
+<template>
+  <view class="page">
+    <view class="empty" v-if="items.length === 0">
+      <text class="empty-t">购物车还是空的</text>
+      <text class="empty-s">去首页逛逛，把好物加进来</text>
+      <view class="btn" @click="goHome">
+        <text class="btn-t">去首页</text>
+      </view>
+      <text class="demo-link" @click="seedDemo">加载演示商品</text>
+    </view>
+    <template v-else>
+      <scroll-view class="list" scroll-y="true" style="flex: 1;">
+        <view class="card" v-for="it in items" :key="it.id">
+          <image v-if="it.cover != null && it.cover.length > 0" class="thumb" :src="it.cover" mode="aspectFill" />
+          <view v-else class="thumb" />
+          <view class="mid">
+            <text class="title">{{ it.title }}</text>
+            <text class="price">¥{{ it.priceYuan }}</text>
+            <view class="qty-row">
+              <view class="qty-btn" @click="dec(it.id)">
+                <text class="qty-btn-t">−</text>
+              </view>
+              <text class="qty-num">{{ it.qty }}</text>
+              <view class="qty-btn" @click="inc(it.id)">
+                <text class="qty-btn-t">+</text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="list-pad" />
+      </scroll-view>
+      <view class="bar">
+        <view class="bar-left">
+          <text class="bar-label">合计</text>
+          <text class="bar-sum">¥{{ totalStr }}</text>
+        </view>
+        <view class="bar-go" @click="goConfirm">
+          <text class="bar-go-t">去结算</text>
+        </view>
+      </view>
+    </template>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { readCartLines, updateLineQty, sumCartYuan, formatYuan, writeCartLines, type MallCartLine } from '@/utils/mall-cart.uts'
+  import { getProductBrief } from '@/utils/mall-catalog.uts'
+  import { mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  const items = ref<MallCartLine[]>([])
+  const totalStr = ref('0.00')
+
+  function refresh(): void {
+    items.value = readCartLines()
+    totalStr.value = formatYuan(sumCartYuan(items.value))
+  }
+
+  onShow(() => {
+    refresh()
+  })
+
+  function goHome(): void {
+    uni.switchTab({ url: '/pages/mall/home/home' })
+  }
+
+  function seedDemo(): void {
+    const a = getProductBrief('p1')
+    const b = getProductBrief('p3')
+    const lines: MallCartLine[] = [
+      { id: a.id, title: a.title, priceYuan: a.priceYuan, cover: a.cover, qty: 1 },
+      { id: b.id, title: b.title, priceYuan: b.priceYuan, cover: b.cover, qty: 2 }
+    ]
+    writeCartLines(lines)
+    refresh()
+  }
+
+  function dec(id: string): void {
+    const cur = readCartLines()
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i].id === id) {
+        updateLineQty(id, cur[i].qty - 1)
+        break
+      }
+    }
+    refresh()
+  }
+
+  function inc(id: string): void {
+    const cur = readCartLines()
+    for (let i = 0; i < cur.length; i++) {
+      if (cur[i].id === id) {
+        updateLineQty(id, cur[i].qty + 1)
+        break
+      }
+    }
+    refresh()
+  }
+
+  function goConfirm(): void {
+    if (items.value.length === 0) {
+      return
+    }
+    mallNavigateTo('/packages/mall/order/confirm?from=cart')
+  }
+</script>
+
+<style>
+.page { flex: 1; background-color: #f7f8fa; flex-direction: column; }
+.empty { flex: 1; padding: 48px 24px; align-items: center; justify-content: center; flex-direction: column; }
+.empty-t { font-size: 18px; font-weight: 800; color: #1f2937; }
+.empty-s { margin-top: 8px; font-size: 14px; color: #8a94a6; text-align: center; }
+.btn { margin-top: 24px; padding: 12px 30px; border-radius: 8px; background-color: #0f766e; }
+.btn-t { font-size: 15px; font-weight: 800; color: #ffffff; }
+.demo-link { margin-top: 18px; font-size: 13px; color: #0f766e; font-weight: 800; }
+.list { flex: 1; padding: 12px 16px 10px 16px; box-sizing: border-box; }
+.card {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: row;
+  align-items: center;
+  box-sizing: border-box;
+}
+.thumb { width: 88px; height: 88px; border-radius: 8px; background-color: #e9edf2; flex-shrink: 0; }
+.mid { flex: 1; min-width: 0; min-height: 88px; margin-left: 12px; flex-direction: column; justify-content: space-between; }
+.title { font-size: 15px; font-weight: 700; color: #111827; line-height: 1.35; }
+.price { margin-top: 4px; font-size: 17px; font-weight: 800; color: #0f766e; }
+.qty-row { margin-top: 8px; flex-direction: row; align-items: center; }
+.qty-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: #f1f5f9;
+  border-width: 1px;
+  border-color: #e2e8f0;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn-t { font-size: 18px; font-weight: 800; color: #334155; }
+.qty-num { margin-left: 12px; margin-right: 12px; font-size: 15px; font-weight: 800; color: #111827; min-width: 24px; text-align: center; }
+.list-pad { height: 12px; }
+.bar {
+  min-height: 68px;
+  padding: 12px 16px;
+  background-color: #ffffff;
+  border-top-width: 1px;
+  border-top-color: #e6e8ec;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+/* #ifdef WEB */
+.bar { margin-bottom: 50px; }
+/* #endif */
+.bar-left { flex-direction: column; }
+.bar-label { font-size: 12px; color: #737b89; }
+.bar-sum { margin-top: 2px; font-size: 22px; font-weight: 800; color: #0f766e; }
+.bar-go { height: 44px; padding: 0 26px; border-radius: 8px; background-color: #0f766e; align-items: center; justify-content: center; }
+.bar-go-t { font-size: 15px; font-weight: 800; color: #ffffff; }
+</style>

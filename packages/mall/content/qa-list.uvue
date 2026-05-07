@@ -1,0 +1,79 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card" v-for="q in list" :key="q.id" @click="go(q.id)">
+      <text class="q">问：{{ q.q }}</text>
+      <text class="a">答：{{ shortA(q.a) }}</text>
+      <text class="ar">{{ q.author }} · 官方回复</text>
+    </view>
+    <view class="fab" @click="toast">
+      <text class="fab-t">我要提问</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockQaList, type MockQa } from '@/utils/mall-mock.uts'
+
+  const list = ref<MockQa[]>(mockQaList())
+
+  function shortA(s : string) : string {
+    if (s.length > 36) {
+      return s.substring(0, 36) + '…'
+    }
+    return s
+  }
+
+  function go(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/content/qa-detail?id=' + id })
+  }
+
+  function toast() : void {
+    uni.showToast({ title: '请先在商详页发起', icon: 'none' })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px;
+  padding-bottom: 80px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: column;
+}
+.q {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+}
+.a {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+.ar {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #059669;
+}
+.fab {
+  position: fixed;
+  right: 20px;
+  bottom: 32px;
+  padding: 12px 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+}
+.fab-t {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

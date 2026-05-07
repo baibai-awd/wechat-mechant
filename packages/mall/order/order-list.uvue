@@ -1,0 +1,188 @@
+<template>
+  <view class="page">
+    <scroll-view class="tabs" scroll-x="true" show-scrollbar="false">
+      <view class="tabs-in">
+        <text v-for="(t, i) in tabLabels" :key="'t' + i.toString()" class="tab" :class="tabIdx === i ? 'tab-on' : ''" @click="setTab(i)">{{ t }}</text>
+      </view>
+    </scroll-view>
+    <scroll-view class="sc" style="flex: 1;">
+      <view v-if="filtered.length === 0" class="empty">
+        <text class="empty-t">暂无订单</text>
+        <text v-if="!hasToken" class="empty-s">登录后可查看你的订单</text>
+        <view v-if="!hasToken" class="empty-go" @click="goLogin">
+          <text class="empty-go-t">去登录</text>
+        </view>
+      </view>
+      <view class="card" v-for="o in filtered" :key="o.id" @click="goDetail(o.id)">
+        <view class="head">
+          <text class="oid">{{ o.id }}</text>
+          <text class="st" :class="getStatusClass(o.statusText)">{{ o.statusText }}</text>
+        </view>
+        <view class="body">
+          <image v-if="o.cover != null && o.cover.length > 0" class="thumb" :src="o.cover" mode="aspectFill" />
+          <view v-else class="thumb" />
+          <view class="mid">
+            <text class="title">{{ o.goodsTitle }}</text>
+            <text class="spec">{{ o.spec }}</text>
+          </view>
+          <view class="pr">
+            <text class="price">¥{{ o.priceYuan }}</text>
+            <text class="cnt">×{{ o.count }}</text>
+          </view>
+        </view>
+        <view class="foot">
+          <text class="time">{{ o.time }}</text>
+          <text class="pay-sum">实付 ¥{{ o.payTotalYuan }}</text>
+        </view>
+      </view>
+      <view class="pad" />
+    </scroll-view>
+  </view>
+</template>
+<script setup lang="uts">
+  import { mockOrders, type MockOrderRow } from '@/utils/mall-mock.uts'
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { getMallUniIdToken, handleMallTokenInvalid, mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  const tabLabels = ['全部', '待付款', '待发货', '待收货', '已完成', '已关闭']
+  const tabIdx = ref(0)
+  const all = ref<MockOrderRow[]>([])
+  const hasToken = ref(false)
+
+  function mapCloudRows(arr: UTSJSONObject[]): MockOrderRow[] {
+    const out: MockOrderRow[] = []
+    if (arr == null) {
+      return out
+    }
+    for (let i = 0; i < arr.length; i++) {
+      const o = arr[i]
+      const cv = o['cover']
+      const pt = o['payTotalYuan'] as string
+      out.push({
+        id: o['id'] as string,
+        statusText: o['statusText'] as string,
+        goodsTitle: o['goodsTitle'] as string,
+        spec: o['spec'] as string,
+        priceYuan: o['priceYuan'] as string,
+        count: o['count'] as number,
+        time: o['time'] as string,
+        productId: o['productId'] as string,
+        cover: cv != null ? (cv as string) : '',
+        payTotalYuan: pt != null && pt.length > 0 ? pt : '0.00'
+      })
+    }
+    return out
+  }
+
+  async function refresh() : Promise<void> {
+    const token = getMallUniIdToken()
+    hasToken.value = token.length > 0
+    if (!hasUniCloudMall() || token.length === 0) {
+      // 无云端或未登录时兜底显示 mock 演示订单
+      all.value = mockOrders()
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.listMyOrders({ token: token }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        all.value = mapCloudRows(arr != null ? arr : [])
+        return
+      }
+      // token 失效（401）或其他错误
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      all.value = mockOrders()
+    } catch (e) {
+      // 网络异常也可能表示 token 失效
+      handleMallTokenInvalid()
+    }
+  }
+
+  onShow(() => {
+    refresh()
+  })
+
+  const filtered = computed((): MockOrderRow[] => {
+    const rows = all.value
+    if (tabIdx.value === 0) {
+      return rows
+    }
+    const lab = tabLabels[tabIdx.value]
+    const out: MockOrderRow[] = []
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].statusText === lab) {
+        out.push(rows[i])
+      }
+    }
+    return out
+  })
+
+  function goDetail(id : string) : void {
+    mallNavigateTo('/packages/mall/order/order-detail?id=' + id)
+  }
+
+  function goLogin() : void {
+    mallNavigateTo('/packages/mall/user/login')
+  }
+
+  function setTab(i : number) : void {
+    tabIdx.value = i
+  }
+
+  function getStatusClass(statusText: string): string {
+    if (statusText === '待付款') return 'st-pending'
+    if (statusText === '待发货') return 'st-shipping'
+    if (statusText === '待收货') return 'st-receive'
+    if (statusText === '已完成') return 'st-done'
+    if (statusText === '已关闭') return 'st-closed'
+    return ''
+  }
+</script>
+<style>
+.page { flex: 1; background-color: #f7f8fa; flex-direction: column; }
+.tabs { height: 50px; background-color: #ffffff; border-bottom-width: 1px; border-bottom-color: #e6e8ec; }
+.tabs-in { flex-direction: row; align-items: center; padding: 0 8px; height: 50px; }
+.tab { padding: 0 14px; font-size: 14px; color: #667085; }
+.tab-on { font-weight: 800; color: #0f766e; }
+.sc { padding: 12px 16px; }
+.card {
+  margin-bottom: 12px;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: column;
+}
+.head { flex-direction: row; justify-content: space-between; margin-bottom: 12px; }
+.oid { font-size: 13px; color: #667085; font-weight: 600; }
+.st { font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: 6px; }
+.st-pending { background-color: #fffbeb; color: #b45309; }
+.st-shipping { background-color: #eff6ff; color: #1d4ed8; }
+.st-receive { background-color: #ecfdf5; color: #0f766e; }
+.st-done { background-color: #f0fdf4; color: #166534; }
+.st-closed { background-color: #f1f5f9; color: #64748b; }
+.body { flex-direction: row; align-items: flex-start; margin-bottom: 12px; }
+.thumb { width: 88px; height: 88px; border-radius: 8px; background-color: #e9edf2; flex-shrink: 0; }
+.mid { flex: 1; margin-left: 12px; flex-direction: column; min-width: 0; }
+.title { font-size: 15px; font-weight: 700; color: #111827; line-height: 1.4; }
+.spec { margin-top: 4px; font-size: 13px; color: #8a94a6; }
+.pr { align-items: flex-end; flex-direction: column; margin-left: 12px; min-width: 80px; }
+.price { font-size: 16px; font-weight: 800; color: #0f766e; }
+.cnt { margin-top: 4px; font-size: 13px; color: #8a94a6; }
+.foot { flex-direction: row; justify-content: space-between; align-items: center; margin-top: 4px; }
+.time { font-size: 12px; color: #8a94a6; }
+.pay-sum { font-size: 15px; font-weight: 800; color: #111827; }
+.pad { height: 16px; }
+.empty { padding: 48px 24px; align-items: center; flex-direction: column; }
+.empty-t { font-size: 16px; font-weight: 800; color: #344054; }
+.empty-s { margin-top: 10px; font-size: 14px; color: #8a94a6; text-align: center; }
+.empty-go { margin-top: 24px; padding: 12px 30px; border-radius: 8px; background-color: #0f766e; align-items: center; }
+.empty-go-t { font-size: 15px; font-weight: 800; color: #ffffff; }
+</style>

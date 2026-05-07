@@ -1,0 +1,77 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="row" v-for="r in rows" :key="r.productId" @click="go(r.productId)">
+      <view class="thumb" />
+      <view class="mid">
+        <text class="t">{{ r.title }}</text>
+        <text class="tag">{{ r.tag }}</text>
+        <view class="pr">
+          <text class="g">拼团价 ¥{{ r.priceYuan }}</text>
+          <text class="o">¥{{ r.lineYuan }}</text>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockGroupRows, type MockMktRow } from '@/utils/mall-mock.uts'
+
+  const rows = ref<MockMktRow[]>(mockGroupRows())
+
+  function go(pid : string) : void {
+    uni.navigateTo({ url: '/packages/mall/mkt/group-detail?productId=' + pid })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px;
+}
+.row {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+}
+.thumb {
+  width: 88px;
+  height: 88px;
+  border-radius: 12px;
+  background-color: #d1fae5;
+}
+.mid {
+  flex: 1;
+  margin-left: 12px;
+  flex-direction: column;
+}
+.t {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.tag {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #059669;
+  font-weight: 600;
+}
+.pr {
+  margin-top: 10px;
+  flex-direction: row;
+  align-items: baseline;
+}
+.g {
+  font-size: 16px;
+  font-weight: 800;
+  color: #059669;
+}
+.o {
+  margin-left: 8px;
+  font-size: 13px;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+</style>

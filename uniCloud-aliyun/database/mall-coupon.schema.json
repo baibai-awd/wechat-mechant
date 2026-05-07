@@ -1,0 +1,22 @@
+{
+  "bsonType": "object",
+  "required": ["name", "type", "status"],
+  "permission": {
+    "read": true,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "系统自动生成" },
+    "name": { "bsonType": "string" },
+    "type": { "bsonType": "string", "description": "full_reduction | discount | newcomer" },
+    "threshold_cent": { "bsonType": "int", "description": "满额分" },
+    "value_cent": { "bsonType": "int", "description": "减额或折扣相关" },
+    "discount_rate": { "bsonType": "int", "description": "万分比折扣" },
+    "start_at": { "bsonType": "timestamp" },
+    "end_at": { "bsonType": "timestamp" },
+    "total_stock": { "bsonType": "int" },
+    "status": { "bsonType": "string" }
+  }
+}

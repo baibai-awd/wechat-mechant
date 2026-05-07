@@ -1,0 +1,228 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="addr" v-for="a in list" :key="a.id">
+      <view class="addr-main" @click="onTap(a)">
+        <view class="addr-top">
+          <text class="addr-name">{{ a.name }}</text>
+          <text class="addr-phone">{{ a.phone }}</text>
+          <text class="tag" v-if="a.isDefault">默认</text>
+        </view>
+        <text class="addr-line">{{ a.region }} {{ a.detail }}</text>
+      </view>
+      <text v-if="canDelete" class="addr-del" @click="onDelete(a)">删除</text>
+    </view>
+    <view class="btn-add" @click="goEdit('')">
+      <text class="btn-add-t">+ 新增收货地址</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockAddresses, type MockAddress } from '@/utils/mall-mock.uts'
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { getMallUniIdToken, handleMallTokenInvalid } from '@/utils/mall-auth.uts'
+
+  const list = ref<MockAddress[]>([])
+  const pickMode = ref(false)
+  const canDelete = ref(false)
+
+  function mapRows(arr: UTSJSONObject[]): MockAddress[] {
+    const out: MockAddress[] = []
+    if (arr == null) {
+      return out
+    }
+    for (let i = 0; i < arr.length; i++) {
+      const o = arr[i]
+      const id = o['id'] as string
+      const name = o['name'] as string
+      const phone = o['phone'] as string
+      const region = o['region'] as string
+      const detail = o['detail'] as string
+      const isDefault = o['isDefault'] as boolean
+      if (id != null) {
+        out.push({
+          id: id,
+          name: name != null ? name : '',
+          phone: phone != null ? phone : '',
+          region: region != null ? region : '',
+          detail: detail != null ? detail : '',
+          isDefault: isDefault === true
+        })
+      }
+    }
+    return out
+  }
+
+  async function refresh() : Promise<void> {
+    canDelete.value = hasUniCloudMall() && getMallUniIdToken().length > 0
+    if (!hasUniCloudMall()) {
+      list.value = mockAddresses()
+      return
+    }
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      list.value = []
+      uni.showToast({ title: '登录后可管理云端地址', icon: 'none' })
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.listAddresses({ token: token }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        const arr = res['list'] as UTSJSONObject[]
+        list.value = mapRows(arr != null ? arr : [])
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      list.value = []
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+
+  onLoad((options: OnLoadOptions) => {
+    const p = options['pick'] as string
+    if (p != null && p === '1') {
+      pickMode.value = true
+    }
+  })
+
+  onShow(() => {
+    refresh()
+  })
+
+  function onTap(a: MockAddress) : void {
+    if (pickMode.value) {
+      uni.setStorageSync('mall_sel_address_id', a.id)
+      uni.navigateBack({})
+      return
+    }
+    goEdit(a.id)
+  }
+
+  function onDelete(a: MockAddress) : void {
+    if (!canDelete.value) {
+      return
+    }
+    uni.showModal({
+      title: '删除地址',
+      content: '确定删除该收货地址？',
+      showCancel: true,
+      success: (res : any) => {
+        if (res != null && res['confirm'] === true) {
+          runRemove(a.id)
+        }
+      }
+    })
+  }
+
+  async function runRemove(id : string) : Promise<void> {
+    const token = getMallUniIdToken()
+    if (token.length === 0) {
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.removeAddress({ token: token, id: id }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        uni.showToast({ title: '已删除', icon: 'success' })
+        refresh()
+        return
+      }
+      // token 失效
+      if (code === 401) {
+        handleMallTokenInvalid()
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '删除失败', icon: 'none' })
+    } catch (e) {
+      handleMallTokenInvalid()
+    }
+  }
+
+  function goEdit(id : string) : void {
+    if (id.length > 0) {
+      uni.navigateTo({ url: '/packages/mall/user/address-edit?id=' + id })
+    } else {
+      uni.navigateTo({ url: '/packages/mall/user/address-edit' })
+    }
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px 24px;
+}
+.addr {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+  align-items: center;
+}
+.addr-main {
+  flex: 1;
+  flex-direction: column;
+  margin-right: 8px;
+}
+.addr-top {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.addr-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+.addr-phone {
+  margin-left: 12px;
+  font-size: 14px;
+  color: #6b7280;
+}
+.tag {
+  margin-left: 10px;
+  font-size: 11px;
+  color: #059669;
+  border-width: 1px;
+  border-color: #6ee7b7;
+  border-radius: 4px;
+ padding: 2px 8px;
+}
+.addr-line {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.45;
+}
+.addr-del {
+  font-size: 14px;
+  font-weight: 600;
+  color: #dc2626;
+  padding: 8px 4px;
+}
+.btn-add {
+  margin-top: 8px;
+  padding: 14px;
+  border-radius: 16px;
+  border-width: 1.5px;
+  border-color: #059669;
+  background-color: #ffffff;
+  align-items: center;
+}
+.btn-add-t {
+  font-size: 15px;
+  font-weight: 600;
+  color: #059669;
+}
+</style>

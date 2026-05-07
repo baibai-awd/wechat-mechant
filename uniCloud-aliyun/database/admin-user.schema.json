@@ -1,0 +1,41 @@
+{
+  "bsonType": "object",
+  "required": ["username", "password"],
+  "permission": {
+    "read": false,
+    "create": false,
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": {
+      "description": "管理员ID"
+    },
+    "username": {
+      "bsonType": "string",
+      "label": "用户名"
+    },
+    "password": {
+      "bsonType": "string",
+      "label": "密码(加密存储)"
+    },
+    "role": {
+      "bsonType": "string",
+      "enum": ["owner", "operator", "service"],
+      "label": "角色"
+    },
+    "nickname": {
+      "bsonType": "string",
+      "label": "昵称"
+    },
+    "status": {
+      "bsonType": "number",
+      "enum": [0, 1],
+      "label": "状态 0=禁用 1=正常"
+    },
+    "created_at": {
+      "bsonType": "number",
+      "label": "创建时间"
+    }
+  }
+}

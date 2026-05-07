@@ -1,0 +1,115 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <text class="tip">选择一张优惠券（演示）</text>
+    <view class="c" v-for="c in usable" :key="c.id" @click="sel = c.id">
+      <view class="c-left">
+        <text class="amt">{{ c.amountText }}</text>
+        <view class="c-mid">
+          <text class="ct">{{ c.title }}</text>
+          <text class="cs">{{ c.sub }}</text>
+          <text class="ce">{{ c.expired }} 到期</text>
+        </view>
+      </view>
+      <text class="chk">{{ sel === c.id ? '●' : '○' }}</text>
+    </view>
+    <view class="btn" @click="ok">
+      <text class="btn-t">确定</text>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockCoupons, type MockCoupon } from '@/utils/mall-mock.uts'
+
+  const usable = ref<MockCoupon[]>([])
+  const sel = ref('')
+
+  onLoad(() => {
+    const rows = mockCoupons()
+    const u: MockCoupon[] = []
+    for (let i = 0; i < rows.length; i++) {
+      if (!rows[i].used) {
+        u.push(rows[i])
+      }
+    }
+    usable.value = u
+    if (u.length > 0) {
+      sel.value = u[0].id
+    }
+  })
+
+  function ok() : void {
+    uni.showToast({ title: '已选择', icon: 'success' })
+    setTimeout(() => {
+      uni.navigateBack({})
+    }, 400)
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 16px;
+}
+.tip {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 12px;
+}
+.c {
+  margin-bottom: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #fcd34d;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.c-left {
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+.amt {
+  font-size: 22px;
+  font-weight: 800;
+  color: #b45309;
+  width: 72px;
+}
+.c-mid {
+  flex-direction: column;
+  margin-left: 8px;
+  flex: 1;
+}
+.ct {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+}
+.cs {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.ce {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+}
+.chk {
+  font-size: 22px;
+  color: #059669;
+}
+.btn {
+  margin-top: 24px;
+  padding: 14px;
+  border-radius: 24px;
+  background-color: #059669;
+  align-items: center;
+}
+.btn-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

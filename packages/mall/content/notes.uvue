@@ -1,0 +1,66 @@
+<template>
+  <scroll-view class="sc" style="flex: 1;">
+    <view class="card" v-for="n in list" :key="n.id" @click="go(n.id)">
+      <view class="cover">
+        <text class="cov-t">{{ n.coverHint }}</text>
+      </view>
+      <view class="mid">
+        <text class="t">{{ n.title }}</text>
+        <text class="lk">♥ {{ n.likes }}</text>
+      </view>
+    </view>
+  </scroll-view>
+</template>
+<script setup lang="uts">
+  import { mockNotes, type MockNote } from '@/utils/mall-mock.uts'
+
+  const list = ref<MockNote[]>(mockNotes())
+
+  function go(id : string) : void {
+    uni.navigateTo({ url: '/packages/mall/content/note-detail?id=' + id })
+  }
+</script>
+<style>
+.sc {
+  background-color: #f2f2f7;
+  padding: 12px 16px;
+}
+.card {
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e5e5ea;
+  flex-direction: row;
+}
+.cover {
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  background-color: #e0e7ff;
+  align-items: center;
+  justify-content: center;
+}
+.cov-t {
+  font-size: 16px;
+  font-weight: 700;
+  color: #4338ca;
+}
+.mid {
+  flex: 1;
+  margin-left: 12px;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.t {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1.35;
+}
+.lk {
+  font-size: 12px;
+  color: #9ca3af;
+}
+</style>

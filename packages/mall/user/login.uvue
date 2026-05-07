@@ -1,0 +1,142 @@
+<template>
+  <!-- 微信：scroll-view 内嵌原生 input 易触发占位/空值乱画；短表单用普通容器 -->
+  <view class="page">
+    <view class="hero">
+      <text class="hero-t">欢迎登录</text>
+      <text class="hero-s">手机号 + 密码（uni-id / mall-co）</text>
+    </view>
+    <view class="card">
+      <text class="lab">手机号</text>
+      <text class="lab-tip">请输入 11 位数字</text>
+      <input class="inp" type="digit" maxlength="11" :value="phone" @input="onPhone" />
+    </view>
+    <view class="card">
+      <text class="lab">密码</text>
+      <text class="lab-tip">不少于 6 位（输入后自动变为密文）</text>
+      <!-- 空密码时勿开 password，否则部分基础库把空框画成一串圆点 -->
+      <input class="inp" :password="pwd.length > 0" :value="pwd" @input="onPwd" />
+    </view>
+    <view class="btn-main" @click="doLogin">
+      <text class="btn-main-t">登录</text>
+    </view>
+    <text class="link" @click="goReg">没有账号？去注册</text>
+  </view>
+</template>
+<script setup lang="uts">
+  import { hasUniCloudMall } from '@/utils/mall-catalog.uts'
+  import { setMallAuth, maskMobile, normalizePhoneInput, mallNavigateTo } from '@/utils/mall-auth.uts'
+
+  const phone = ref('')
+  const pwd = ref('')
+
+  function onPhone(e : UniInputEvent) {
+    phone.value = normalizePhoneInput(e.detail.value as string)
+  }
+  function onPwd(e : UniInputEvent) {
+    pwd.value = e.detail.value
+  }
+
+  async function doLogin() : Promise<void> {
+    if (!hasUniCloudMall()) {
+      uni.showToast({ title: '请关联 uniCloud 服务空间', icon: 'none' })
+      return
+    }
+    const m = phone.value.trim()
+    if (m.length !== 11 || pwd.value.length < 6) {
+      uni.showToast({ title: '请输入手机号与密码', icon: 'none' })
+      return
+    }
+    try {
+      // @ts-ignore
+      const co = uniCloud.importObject('mall-co')
+      const res = await co.loginByMobilePassword({ mobile: m, password: pwd.value }) as UTSJSONObject
+      const code = res['errCode'] as number
+      if (code != null && code === 0) {
+        const tok = res['token'] as string
+        if (tok != null && tok.length > 0) {
+          setMallAuth(tok, maskMobile(m))
+        }
+        uni.showToast({ title: '登录成功', icon: 'success' })
+        setTimeout(() => {
+          uni.reLaunch({
+            url: '/pages/mall/mine/mine'
+          })
+        }, 400)
+        return
+      }
+      const msg = res['errMsg'] as string
+      uni.showToast({ title: msg != null && msg.length > 0 ? msg : '登录失败', icon: 'none' })
+    } catch (e) {
+      uni.showToast({ title: '网络异常', icon: 'none' })
+    }
+  }
+  function goReg() : void {
+    mallNavigateTo('/packages/mall/user/register')
+  }
+</script>
+<style>
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f8fa;
+}
+.hero {
+  padding: 34px 24px 18px 24px;
+  flex-direction: column;
+}
+.hero-t {
+  font-size: 25px;
+  font-weight: 800;
+  color: #111827;
+}
+.hero-s {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #667085;
+}
+.card {
+  margin: 0 16px 12px 16px;
+  padding: 15px 16px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border-width: 1px;
+  border-color: #e6e8ec;
+  flex-direction: column;
+}
+.lab {
+  font-size: 13px;
+  color: #475569;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.lab-tip {
+  font-size: 12px;
+  color: #8a94a6;
+  margin-bottom: 12px;
+}
+.inp {
+  font-size: 16px;
+  color: #111827;
+  padding: 8px 0;
+  min-height: 44px;
+}
+.btn-main {
+  margin: 24px 16px 16px 16px;
+  padding: 14px;
+  border-radius: 8px;
+  background-color: #0f766e;
+  align-items: center;
+}
+.btn-main-t {
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+}
+.link {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: #0f766e;
+  font-weight: 800;
+}
+</style>

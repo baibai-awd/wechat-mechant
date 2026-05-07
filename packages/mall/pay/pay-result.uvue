@@ -1,0 +1,150 @@
+<template>
+  <view class="page">
+    <view class="ico-wrap">
+      <text class="ico">{{ ok ? '✓' : '!' }}</text>
+    </view>
+    <text class="t1">{{ ok ? '支付成功' : '支付未完成' }}</text>
+    <text class="t2">{{ ok ? '订单已提交，商家将尽快为你发货' : '可返回重新尝试或更换支付方式' }}</text>
+    <text class="ord-no" v-if="orderNo !== ''">订单号 {{ orderNo }}</text>
+    <text class="amt" v-if="ok && amount !== ''">¥{{ amount }}</text>
+
+    <view class="btns">
+      <view class="btn ghost" @click="goHome">
+        <text class="btn-ghost-t">回首页</text>
+      </view>
+      <view class="btn primary" @click="goOrders">
+        <text class="btn-primary-t">我的订单</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script setup lang="uts">
+  import { clearCart } from '@/utils/mall-cart.uts'
+
+  const ok = ref(false)
+  const amount = ref('')
+  const orderNo = ref('')
+
+  onLoad((options: OnLoadOptions) => {
+    const st = options['status'] as string
+    ok.value = st === 'success'
+    const am = options['amount'] as string
+    if (am != null && am.length > 0) {
+      amount.value = decodeURIComponent(am)
+    }
+    const ono = options['orderNo'] as string
+    if (ono != null && ono.length > 0) {
+      orderNo.value = decodeURIComponent(ono)
+    }
+    const src = options['src'] as string
+    if (ok.value && src === 'cart') {
+      clearCart()
+    }
+  })
+
+  function goHome(): void {
+    uni.switchTab({ url: '/pages/mall/home/home' })
+  }
+
+  function goOrders(): void {
+    uni.redirectTo({ url: '/packages/mall/order/order-list' })
+  }
+</script>
+
+<style>
+.page {
+  flex: 1;
+  background-color: #f2f2f7;
+  padding: 48px 24px;
+  align-items: center;
+  flex-direction: column;
+}
+
+.ico-wrap {
+  width: 88px;
+  height: 88px;
+  border-radius: 44px;
+  background-color: #ffffff;
+  border-width: 2px;
+  border-color: #6ee7b7;
+  align-items: center;
+  justify-content: center;
+}
+
+.ico {
+  font-size: 48px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.t1 {
+  margin-top: 24px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.t2 {
+  margin-top: 10px;
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.5;
+  padding: 0 16px;
+}
+
+.ord-no {
+  margin-top: 14px;
+  font-size: 15px;
+  color: #374151;
+  font-weight: 600;
+  text-align: center;
+  padding: 0 12px;
+}
+
+.amt {
+  margin-top: 16px;
+  font-size: 28px;
+  font-weight: 800;
+  color: #059669;
+}
+
+.btns {
+  margin-top: 40px;
+  flex-direction: row;
+  width: 100%;
+  justify-content: center;
+}
+
+.btn {
+  flex: 1;
+  margin: 0 8px;
+  padding: 14px;
+  border-radius: 24px;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn.ghost {
+  border-width: 1.5px;
+  border-color: #059669;
+  background-color: #ffffff;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+.btn-ghost-t {
+  font-size: 15px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.btn-primary-t {
+  font-size: 15px;
+  font-weight: 700;
+  color: #ffffff;
+}
+</style>

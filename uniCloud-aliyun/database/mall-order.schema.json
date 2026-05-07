@@ -1,0 +1,40 @@
+{
+  "bsonType": "object",
+  "required": ["user_id", "order_no", "status"],
+  "permission": {
+    "read": "doc.user_id == auth.uid",
+    "create": "auth.uid != null",
+    "update": false,
+    "delete": false
+  },
+  "properties": {
+    "_id": { "description": "系统自动生成" },
+    "user_id": { "bsonType": "string" },
+    "order_no": { "bsonType": "string" },
+    "status": {
+      "bsonType": "string",
+      "description": "pending_pay | paid | shipped | received | closed | refunding"
+    },
+    "address_snapshot": { "bsonType": "object" },
+    "items": {
+      "bsonType": "array",
+      "description": "行项目 product_id sku_id title price_cent qty"
+    },
+    "freight_cent": { "bsonType": "int" },
+    "total_cent": { "bsonType": "int" },
+    "coupon_id": { "bsonType": "string" },
+    "discount_cent": { "bsonType": "int" },
+    "pay_channel": { "bsonType": "string" },
+    "delivery_type": {
+      "bsonType": "string",
+      "description": "standard | instant | pickup"
+    },
+    "logistics": {
+      "bsonType": "object",
+      "description": "carrier, tracking_no, traces"
+    },
+    "remark": { "bsonType": "string" },
+    "created_at": { "bsonType": "number" },
+    "updated_at": { "bsonType": "number" }
+  }
+}
